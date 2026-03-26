@@ -26,8 +26,8 @@ jobs:
 
       - name: Ejecutar scraper
         run: python scraper_senado.py
-        env:
-          VENTANA_DIAS: 30
+                env:
+          FECHA_DESDE: "01/03/2026"
           EXCEL_SENADORES: Senadores_2026.xlsx
           ARCHIVO_SALIDA: index.html
 
