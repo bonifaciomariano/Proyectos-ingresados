@@ -31,7 +31,8 @@ except ImportError:
 
 # ─────────────────────────────── Configuración ────────────────────────────────
 
-VENTANA_DIAS    = int(os.getenv("VENTANA_DIAS", "30"))
+FECHA_DESDE_FIJA = os.getenv("FECHA_DESDE", "")
+VENTANA_DIAS     = int(os.getenv("VENTANA_DIAS", "30"))
 EXCEL_SENADORES = os.getenv("EXCEL_SENADORES", "Senadores_2026.xlsx")
 ARCHIVO_SALIDA  = os.getenv("ARCHIVO_SALIDA", "index.html")
 
@@ -344,7 +345,16 @@ def main():
     # 2. Definir rango de fechas
     hoy         = datetime.now()
     fecha_hasta = hoy
-    fecha_desde = hoy - timedelta(days=VENTANA_DIAS)
+        if FECHA_DESDE_FIJA:
+        try:
+            fecha_desde = datetime.strptime(FECHA_DESDE_FIJA, "%d/%m/%Y")
+            log.info(f"  Usando fecha de inicio fija: {FECHA_DESDE_FIJA}")
+        except ValueError:
+            log.error(f"  Formato de FECHA_DESDE inválido: '{FECHA_DESDE_FIJA}'. Usá DD/MM/YYYY")
+            sys.exit(1)
+    else:
+        fecha_desde = hoy - timedelta(days=VENTANA_DIAS)
+
 
     # 3. Buscar expedientes
     session = requests.Session()
