@@ -1,0 +1,8 @@
+.env
+.env.local
+scraper.log
+Ingresados*.xlsx
+__pycache__/
+*.pyc
+.vscode/
+.idea/
