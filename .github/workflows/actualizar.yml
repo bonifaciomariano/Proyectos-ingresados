@@ -26,7 +26,7 @@ jobs:
 
       - name: Ejecutar scraper
         run: python scraper_senado.py
-                env:
+        env:
           FECHA_DESDE: "01/03/2026"
           EXCEL_SENADORES: Senadores_2026.xlsx
           ARCHIVO_SALIDA: index.html
@@ -37,9 +37,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --staged --quiet; then
-            echo "Sin cambios en index.html — no se genera commit."
+            echo "Sin cambios en index.html"
           else
             FECHA=$(TZ='America/Argentina/Buenos_Aires' date '+%d/%m/%Y %H:%M ART')
-            git commit -m "dashboard: actualización automática ${FECHA}"
+            git commit -m "dashboard: actualizacion automatica ${FECHA}"
             git push
           fi
