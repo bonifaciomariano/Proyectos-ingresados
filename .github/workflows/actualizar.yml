@@ -28,7 +28,7 @@ jobs:
         run: python scraper_senado.py
         env:
           FECHA_DESDE: "01/03/2026"
-          EXCEL_SENADORES: Senadores_2026.xlsx
+          EXCEL_SENADORES: "Senadores 2026.xlsx"
           ARCHIVO_SALIDA: index.html
 
       - name: Commit y push si hubo cambios
