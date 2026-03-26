@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """
-scraper_senado.py — Scraper automático del Senado de la Nación Argentina
-=========================================================================
-Obtiene todos los proyectos ingresados por Mesa de Entradas en los últimos
-VENTANA_DIAS días, los cruza con Senadores_2026.xlsx para obtener bloques
-políticos, y llama a generar_html.py para publicar el dashboard.
+scraper_senado.py
+Obtiene proyectos ingresados por Mesa de Entradas y genera el dashboard.
 
-Uso manual:
-    python scraper_senado.py
-
-Variables de entorno opcionales:
-    VENTANA_DIAS     Días hacia atrás a buscar (default: 30)
-    EXCEL_SENADORES  Ruta al Excel de senadores (default: Senadores_2026.xlsx)
-    ARCHIVO_SALIDA   Ruta del HTML a generar (default: index.html)
+Variables de entorno:
+    FECHA_DESDE      Fecha de inicio fija DD/MM/YYYY (ej: 01/03/2026)
+    VENTANA_DIAS     Dias hacia atras si no hay FECHA_DESDE (default: 30)
+    EXCEL_SENADORES  Excel de senadores (default: Senadores_2026.xlsx)
+    ARCHIVO_SALIDA   HTML a generar (default: index.html)
 """
 
 import logging
@@ -26,37 +21,31 @@ try:
     import requests
     from bs4 import BeautifulSoup
 except ImportError:
-    print("ERROR: faltan dependencias. Ejecutá: pip install -r requirements.txt")
+    print("ERROR: faltan dependencias. Ejecuta: pip install -r requirements.txt")
     sys.exit(1)
-
-# ─────────────────────────────── Configuración ────────────────────────────────
 
 FECHA_DESDE_FIJA = os.getenv("FECHA_DESDE", "")
 VENTANA_DIAS     = int(os.getenv("VENTANA_DIAS", "30"))
-EXCEL_SENADORES = os.getenv("EXCEL_SENADORES", "Senadores_2026.xlsx")
-ARCHIVO_SALIDA  = os.getenv("ARCHIVO_SALIDA", "index.html")
+EXCEL_SENADORES  = os.getenv("EXCEL_SENADORES", "Senadores_2026.xlsx")
+ARCHIVO_SALIDA   = os.getenv("ARCHIVO_SALIDA", "index.html")
 
 BASE_URL       = "https://www.senado.gob.ar"
 URL_BUSQUEDA   = f"{BASE_URL}/parlamentario/parlamentaria/"
 URL_FECHA_MESA = f"{BASE_URL}/parlamentario/parlamentaria/fechaMesa"
 
-# Tipos de expediente que nos interesan (los demás se descartan)
 TIPOS_INCLUIR = {"PL", "PD", "PC", "PR", "CA", "AC", "CV"}
 
 TIPOS = {
     "PL": "Proyecto de Ley",
-    "PD": "Proyecto de Declaración",
-    "PC": "Proyecto de Comunicación",
-    "PR": "Proyecto de Resolución",
-    "CA": "Comunicación Aprobada",
+    "PD": "Proyecto de Declaracion",
+    "PC": "Proyecto de Comunicacion",
+    "PR": "Proyecto de Resolucion",
+    "CA": "Comunicacion Aprobada",
     "AC": "Acuerdo",
     "CV": "Convenio",
 }
 
-# Pausa entre requests al servidor (segundos)
 PAUSA_ENTRE_REQUESTS = 1.0
-
-# ─────────────────────────────── Logger ───────────────────────────────────────
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,28 +58,20 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-# ─────────────────────────────── Senadores ────────────────────────────────────
-
 def cargar_senadores(excel_path):
-    """
-    Lee Senadores_2026.xlsx y devuelve un dict:
-        {"APELLIDO, NOMBRE": "Nombre del Bloque"}
-    """
     try:
         import openpyxl
     except ImportError:
-        log.error("Falta openpyxl. Ejecutá: pip install openpyxl")
+        log.error("Falta openpyxl.")
         return {}
-
     try:
         wb = openpyxl.load_workbook(excel_path)
     except FileNotFoundError:
-        log.error(f"No se encontró '{excel_path}'")
+        log.error(f"No se encontro '{excel_path}'")
         return {}
     except Exception as exc:
         log.error(f"Error abriendo '{excel_path}': {exc}")
         return {}
-
     ws = wb.active
     padron = {}
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -100,16 +81,11 @@ def cargar_senadores(excel_path):
         if apellido and nombre:
             key = f"{apellido.strip()}, {nombre.strip()}".upper()
             padron[key] = bloque
-
-    log.info(f"  → {len(padron)} senadores cargados desde '{excel_path}'")
+    log.info(f"  {len(padron)} senadores cargados desde '{excel_path}'")
     return padron
 
 
 def normalizar_autor(nombre_sitio):
-    """
-    El sitio devuelve "Soria , Martin Ignacio" (espacio antes de la coma).
-    Esta función lo convierte a "SORIA, MARTIN IGNACIO" para cruzar con el padrón.
-    """
     if not nombre_sitio:
         return ""
     if "," not in nombre_sitio:
@@ -119,7 +95,6 @@ def normalizar_autor(nombre_sitio):
 
 
 def get_bloques(autores_normalizados, senador_bloque):
-    """Devuelve lista de bloques únicos para una lista de autores normalizados."""
     seen, result = set(), []
     for autor in autores_normalizados:
         bloque = senador_bloque.get(autor, "Sin datos")
@@ -129,90 +104,59 @@ def get_bloques(autores_normalizados, senador_bloque):
     return result
 
 
-# ─────────────────────────────── Scraping: búsqueda ──────────────────────────
-
 def obtener_token(session):
-    """Obtiene un CSRF token fresco de la página principal de búsqueda."""
     log.info("Obteniendo CSRF token...")
     resp = session.get(URL_BUSQUEDA, timeout=30)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
     inp = soup.find("input", {"name": "busqueda_proyectos[_token]"})
     if not inp:
-        raise RuntimeError("No se encontró el campo busqueda_proyectos[_token] en la página")
+        raise RuntimeError("No se encontro el campo _token en la pagina")
     return inp["value"]
 
 
 def parsear_tabla_resultados(html):
-    """
-    Extrae las filas de la tabla de resultados de una página de búsqueda.
-    Devuelve lista de dicts con: nro, anio, tipo, origen, fecha, extracto, url.
-    """
     soup = BeautifulSoup(html, "html.parser")
     tablas = soup.find_all("table")
     if not tablas:
         return []
-
-    # La tabla con más filas es la de resultados
     tabla = max(tablas, key=lambda t: len(t.find_all("tr")))
     filas = []
-
     for tr in tabla.find_all("tr"):
         tds = tr.find_all("td")
         if len(tds) < 6:
             continue
-
         link = tds[0].find("a", href=True)
         if not link:
             continue
-
-        exp_text = tds[0].get_text(strip=True)   # "158/26"
+        exp_text = tds[0].get_text(strip=True)
         url      = link["href"]
         if url and not url.startswith("http"):
             url = BASE_URL + url
-
         tipo     = tds[1].get_text(strip=True)
         origen   = tds[2].get_text(strip=True)
-        fecha    = tds[4].get_text(strip=True)   # "13/03/2026"
+        fecha    = tds[4].get_text(strip=True)
         caratula = tds[5].get_text(strip=True)
-
-        # Solo incluir tipos de interés
         if tipo not in TIPOS_INCLUIR:
             continue
-
-        # Parsear nro/anio de "158/26"
         m = re.match(r"(\d+)/(\d+)", exp_text)
         if not m:
             continue
         nro      = int(m.group(1))
         anio_str = m.group(2)
         anio     = int("20" + anio_str) if len(anio_str) == 2 else int(anio_str)
-
-        # Extracto = lo que sigue al primer ":"
         extracto = caratula
         if ":" in caratula:
             extracto = caratula[caratula.index(":") + 1:].strip()
-
         filas.append({
-            "nro":      nro,
-            "anio":     anio,
-            "tipo":     tipo,
-            "origen":   origen,
-            "fecha":    fecha,
-            "extracto": extracto,
-            "url":      url,
+            "nro": nro, "anio": anio, "tipo": tipo, "origen": origen,
+            "fecha": fecha, "extracto": extracto, "url": url,
         })
-
     return filas
 
 
 def buscar_por_fechas(session, fecha_desde, fecha_hasta):
-    """
-    POST inicial + paginación GET.
-    Devuelve lista completa de expedientes del período con los datos básicos.
-    """
     token = obtener_token(session)
-
     payload = {
         "busqueda_proyectos[fechaDesdeMesa][day]":   str(fecha_desde.day),
         "busqueda_proyectos[fechaDesdeMesa][month]": str(fecha_desde.month),
@@ -222,141 +166,98 @@ def buscar_por_fechas(session, fecha_desde, fecha_hasta):
         "busqueda_proyectos[fechaHastaMesa][year]":  str(fecha_hasta.year),
         "busqueda_proyectos[_token]":                token,
     }
-
-    log.info(f"POST {URL_FECHA_MESA} | {fecha_desde.strftime('%d/%m/%Y')} → {fecha_hasta.strftime('%d/%m/%Y')}")
+    log.info(f"Buscando del {fecha_desde.strftime('%d/%m/%Y')} al {fecha_hasta.strftime('%d/%m/%Y')}")
     resp = session.post(URL_FECHA_MESA, data=payload, timeout=30)
     resp.raise_for_status()
-
     todos  = []
     pagina = 1
     html   = resp.text
-
     while True:
         filas = parsear_tabla_resultados(html)
-        log.info(f"  Página {pagina}: {len(filas)} expedientes de interés")
+        log.info(f"  Pagina {pagina}: {len(filas)} expedientes")
         todos.extend(filas)
-
-        # Buscar link a la página siguiente
         soup      = BeautifulSoup(html, "html.parser")
         next_link = soup.find("a", href=re.compile(rf"[?&]page={pagina + 1}"))
         if not next_link:
             break
-
         pagina += 1
         url_sig = next_link["href"]
         if not url_sig.startswith("http"):
             url_sig = BASE_URL + url_sig
-
         time.sleep(PAUSA_ENTRE_REQUESTS)
         resp = session.get(url_sig, timeout=30)
         resp.raise_for_status()
         html = resp.text
-
-    log.info(f"  → {len(todos)} expedientes en total")
+    log.info(f"  Total: {len(todos)} expedientes")
     return todos
 
 
-# ─────────────────────────────── Scraping: detalle ───────────────────────────
-
 def obtener_detalle(session, url):
-    """
-    Visita la página de detalle de un expediente y extrae:
-        autores_raw  : lista de strings "Apellido , Nombre"
-        comisiones   : lista de strings con nombres de comisiones
-        dae          : string con número de DAE (ej: "8/2026")
-
-    Si ocurre cualquier error retorna campos vacíos sin interrumpir el flujo.
-    """
     resultado = {"autores_raw": [], "comisiones": [], "dae": ""}
     try:
         resp = session.get(url, timeout=30)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Recolectar todas las filas de todas las tablas como listas de strings
         filas = []
         for tr in soup.select("table tr"):
             celdas = [td.get_text(" ", strip=True) for td in tr.find_all(["th", "td"])]
             texto  = " ".join(celdas).strip()
             if texto:
                 filas.append(celdas)
-
-        modo = None   # "autores" | "fechas" | "comisiones" | None
-
+        modo = None
         for fila in filas:
             primer = fila[0] if fila else ""
-
-            # ── Detectar sección ──────────────────────────────────────────
             if "Listado de Autores" in primer:
                 modo = "autores"
                 continue
-
             if "MESA DE ENTRADAS" in primer and "DADO CUENTA" in primer:
                 modo = "fechas"
                 continue
-
             if len(fila) >= 2 and "COMISI" in primer and "FECHA DE INGRESO" in fila[1]:
                 modo = "comisiones"
                 continue
-
             if "DIR. GRAL." in primer or "OBSERVACIONES" in primer:
                 modo = None
                 continue
-
-            # ── Procesar según sección ────────────────────────────────────
             if modo == "autores":
-                # Cada autor está en su propia fila de una celda
                 if len(fila) == 1 and primer:
                     resultado["autores_raw"].append(primer)
                 elif len(fila) > 1:
-                    # Si hay más de una celda, salimos de la sección
                     modo = None
-
             elif modo == "fechas":
-                # La siguiente fila tiene las fechas y el DAE
                 if len(fila) >= 3 and re.match(r"\d", primer):
                     dae_raw = fila[2]
-                    # "8/2026 Tipo: NORMAL" → "8/2026"
                     resultado["dae"] = dae_raw.split(" ")[0] if dae_raw else ""
                     modo = None
-
             elif modo == "comisiones":
-                # "DE AGRICULTURA, GANADERÍA Y PESCA ORDEN DE GIRO: 1"
                 if primer and "FECHA" not in primer:
                     com = re.sub(r"\s+ORDEN DE GIRO:\s*\d+.*$", "", primer).strip()
                     if com:
                         resultado["comisiones"].append(com)
-
     except Exception as exc:
-        log.warning(f"    ⚠ Error en detalle {url}: {exc}")
-
+        log.warning(f"Error en detalle {url}: {exc}")
     return resultado
 
 
-# ─────────────────────────────── Main ─────────────────────────────────────────
-
 def main():
     log.info("=" * 60)
-    log.info(f"Scraper iniciado — ventana {VENTANA_DIAS} días")
+    log.info(f"Scraper iniciado")
 
-    # 1. Cargar padrón de senadores
     senador_bloque = cargar_senadores(EXCEL_SENADORES)
 
-    # 2. Definir rango de fechas
     hoy         = datetime.now()
     fecha_hasta = hoy
-        if FECHA_DESDE_FIJA:
+
+    if FECHA_DESDE_FIJA:
         try:
             fecha_desde = datetime.strptime(FECHA_DESDE_FIJA, "%d/%m/%Y")
-            log.info(f"  Usando fecha de inicio fija: {FECHA_DESDE_FIJA}")
+            log.info(f"  Fecha de inicio fija: {FECHA_DESDE_FIJA}")
         except ValueError:
-            log.error(f"  Formato de FECHA_DESDE inválido: '{FECHA_DESDE_FIJA}'. Usá DD/MM/YYYY")
+            log.error(f"  Formato invalido en FECHA_DESDE: '{FECHA_DESDE_FIJA}'. Usar DD/MM/YYYY")
             sys.exit(1)
     else:
         fecha_desde = hoy - timedelta(days=VENTANA_DIAS)
 
-
-    # 3. Buscar expedientes
     session = requests.Session()
     session.headers.update({
         "User-Agent": (
@@ -369,31 +270,24 @@ def main():
     try:
         expedientes = buscar_por_fechas(session, fecha_desde, fecha_hasta)
     except Exception as exc:
-        log.error(f"Error en la búsqueda principal: {exc}")
+        log.error(f"Error en la busqueda: {exc}")
         sys.exit(1)
 
     if not expedientes:
-        log.warning("No se encontraron expedientes en el período. Saliendo sin generar HTML.")
+        log.warning("No se encontraron expedientes. Saliendo sin generar HTML.")
         sys.exit(0)
 
-    # 4. Enriquecer cada expediente con datos del detalle
     proyectos = []
     total = len(expedientes)
 
     for i, exp in enumerate(expedientes, 1):
         log.info(f"  [{i:>3}/{total}] {exp['tipo']} {exp['nro']}/{exp['anio']}")
-
         time.sleep(PAUSA_ENTRE_REQUESTS)
-        detalle = obtener_detalle(session, exp["url"]) if exp["url"] else {}
-
-        # Normalizar nombres de autores y buscar bloques
-        autores_raw        = detalle.get("autores_raw", [])
-        autores_norm       = [normalizar_autor(a) for a in autores_raw if a.strip()]
-        bloques            = get_bloques(autores_norm, senador_bloque)
-
-        # Usar autores en formato "APELLIDO, NOMBRE" para display y filtro
-        autores_display    = autores_norm if autores_norm else autores_raw
-
+        detalle        = obtener_detalle(session, exp["url"]) if exp["url"] else {}
+        autores_raw    = detalle.get("autores_raw", [])
+        autores_norm   = [normalizar_autor(a) for a in autores_raw if a.strip()]
+        bloques        = get_bloques(autores_norm, senador_bloque)
+        autores_display = autores_norm if autores_norm else autores_raw
         proyectos.append({
             "nro":        exp["nro"],
             "anio":       exp["anio"],
@@ -409,21 +303,20 @@ def main():
             "url":        exp["url"],
         })
 
-    log.info(f"  → {len(proyectos)} proyectos procesados")
+    log.info(f"  {len(proyectos)} proyectos procesados")
 
-    # 5. Generar dashboard HTML
-    titulo      = f"Últimos {VENTANA_DIAS} días · Actualizado {hoy.strftime('%d/%m/%Y')}"
+    titulo      = f"Desde 01/03/2026 - Actualizado {hoy.strftime('%d/%m/%Y')}"
     fecha_datos = hoy.strftime("%d/%m/%Y")
 
     try:
         from generar_html import generar_desde_lista
         generar_desde_lista(proyectos, titulo, fecha_datos, ARCHIVO_SALIDA)
-        log.info(f"  → Dashboard generado: {ARCHIVO_SALIDA}")
+        log.info(f"  Dashboard generado: {ARCHIVO_SALIDA}")
     except Exception as exc:
         log.error(f"Error generando HTML: {exc}")
         sys.exit(1)
 
-    log.info("Scraper finalizado con éxito.")
+    log.info("Scraper finalizado con exito.")
     log.info("=" * 60)
 
 
