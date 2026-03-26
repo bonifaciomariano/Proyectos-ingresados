@@ -3,12 +3,12 @@
 #  Senado de la Nación Argentina
 # =============================================================================
 #
-#  USO MANUAL (sin scraper):
-#  1. Reemplazá EXCEL_PROYECTOS con el nombre del nuevo archivo
-#  2. Corré:  python generar_html.py
-#
 #  USO AUTOMÁTICO (desde scraper_senado.py):
 #  El scraper importa y llama a generar_desde_lista() directamente.
+#
+#  USO MANUAL:
+#  1. Configurá las constantes de abajo
+#  2. Corré:  python generar_html.py
 #
 # =============================================================================
 
@@ -29,22 +29,34 @@ TIPOS = {
     "PD": "Proyecto de Declaración",
     "PC": "Proyecto de Comunicación",
     "PR": "Proyecto de Resolución",
-    "CA": "Comunicación Aprobada",
+    "CA": "Com. de Auditoría",
     "AC": "Acuerdo",
-    "CV": "Convenio",
+    "CV": "Com. Varias",
 }
 
-# ── Estilos y scripts (constantes de módulo) ──────────────────────────────────
+# ── Estilos ───────────────────────────────────────────────────────────────────
 
 CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;font-size:15px;line-height:1.5}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
 .header{background:#1B5EA2;padding:14px 16px;position:sticky;top:0;z-index:100;border-bottom:2px solid #0d3f73}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .header-inst{font-size:9px;font-weight:400;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:2px}
 .header-dep{font-size:9px;font-weight:700;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:2px}
 .header-title{font-size:18px;font-weight:700;color:#fff}
 .header-subtitle{font-size:12px;color:rgba(255,255,255,0.8);margin-top:1px}
+
+/* ── Pestañas ───────────────────────────────────────────────────────── */
+.tab-bar{display:flex;background:#0d3f73;padding:0 12px;gap:2px;position:sticky;top:68px;z-index:99}
+.tab-btn{padding:11px 24px;background:transparent;border:none;color:rgba(255,255,255,0.55);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:1px}
+.tab-btn.active{color:#fff;border-bottom-color:#fff}
+.tab-btn:hover{color:rgba(255,255,255,0.85)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ── Dashboard ──────────────────────────────────────────────────────── */
 .section-block{background:#fff;margin:12px;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
 .section-header{background:#1B5EA2;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
 .section-header h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1.5px}
@@ -77,18 +89,34 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .com-count{font-size:12px;font-weight:700;color:#2E75B6;min-width:26px;text-align:right}
 .dash-context{font-size:11px;color:#2E75B6;background:#EAF0FA;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:none}
 .dash-context.visible{display:block}
-.search-box{width:100%;padding:11px 14px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:14px;color:#4A4A4A;outline:none;margin-bottom:12px;background:#fff}
+
+/* ── Detalle: layout dos columnas ───────────────────────────────────── */
+.detalle-layout{display:flex;gap:16px;padding:12px;align-items:flex-start}
+.filters-panel{width:280px;flex-shrink:0;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden;position:sticky;top:120px}
+.filters-panel .section-header{border-radius:0}
+.filters-body{padding:14px}
+.results-panel{flex:1;min-width:0}
+
+@media(max-width:900px){
+  .detalle-layout{flex-direction:column}
+  .filters-panel{width:100%;position:static}
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────── */
+.search-box{width:100%;padding:10px 12px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:13px;color:#4A4A4A;outline:none;margin-bottom:12px;background:#fff}
 .search-box:focus{border-color:#1B5EA2}
-.filter-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
-.chip{padding:7px 13px;border-radius:20px;border:1.5px solid #D6E4F0;background:#fff;font-family:inherit;font-size:12px;color:#4A4A4A;cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-appearance:none;line-height:1.2}
+.filter-label{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;margin-top:10px}
+.filter-label:first-child{margin-top:0}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+.chip{padding:6px 11px;border-radius:20px;border:1.5px solid #D6E4F0;background:#fff;font-family:inherit;font-size:11px;color:#4A4A4A;cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-appearance:none;line-height:1.2}
 .chip.on{background:#1B5EA2;border-color:#1B5EA2;color:#fff;font-weight:600}
-.results-count{font-size:12px;color:#888;margin-top:10px}
+.results-count{font-size:12px;color:#888;margin-top:10px;margin-bottom:6px}
 .select-wrapper{position:relative;display:block;margin-bottom:4px}
-.filter-select{width:100%;padding:9px 36px 9px 13px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:13px;color:#4A4A4A;background:#fff;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+.filter-select{width:100%;padding:8px 32px 8px 11px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;transition:border-color .15s}
 .filter-select:focus,.filter-select.on{border-color:#1B5EA2;background:#EAF0FA;color:#1B5EA2;font-weight:600}
-.select-arrow{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:#888;font-size:13px}
-.list-section{padding:0 12px 12px}
+.select-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#888;font-size:12px}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
 .card{background:#fff;border-radius:10px;margin-bottom:10px;overflow:hidden;border:1px solid #D6E4F0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
 .card-exp{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 7px;border-bottom:1px solid #EEF2F8;background:#F5F8FC}
 .exp-id{display:flex;align-items:center;gap:8px}
@@ -108,18 +136,29 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
 """
 
+# ── JavaScript ────────────────────────────────────────────────────────────────
+
 JS = r"""
-var TIPOS = {PL:'Proy. de Ley',PD:'Declaraci\u00f3n',PC:'Comunicaci\u00f3n',PR:'Resoluci\u00f3n',CA:'Com. Aprobada',AC:'Acuerdo',CV:'Convenio'};
+var TIPOS = {PL:'Proy. de Ley',PD:'Declaraci\u00f3n',PC:'Comunicaci\u00f3n',PR:'Resoluci\u00f3n',CA:'Com. Auditor\u00eda',AC:'Acuerdo',CV:'Com. Varias'};
 var TIPO_FG = {PL:'#1B5EA2',PD:'#2E75B6',PC:'#0d7a4a',PR:'#5B4DA0',CA:'#1a7a4a',AC:'#7a5c1a',CV:'#7a1a3a'};
 var TIPO_BG = {PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC:'#F9F0DA',CV:'#FAE0EA'};
 var BC = ['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
 var ALL_BLOQUES = [];
 var dashFiltroTipo = '', dashFiltroBloque = '', dashFiltroCom = '';
-var activeTipos = {}, activeBloques = {}, activeOrigen = '';
+var activeTipos = {}, activeBloque = '', activeOrigen = '';
 
+/* ── Pestañas ──────────────────────────────────────────────────── */
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelector('[data-tab="'+id+'"]').classList.add('active');
+}
+
+/* ── Init ──────────────────────────────────────────────────────── */
 function init(){
   var bset = {};
-  DATA.forEach(function(p){ p.bloques.forEach(function(b){ bset[b]=1; }); });
+  DATA.forEach(function(p){ p.bloques.forEach(function(b){ if(b) bset[b]=1; }); });
   ALL_BLOQUES = Object.keys(bset).sort();
 
   var cset = {};
@@ -140,6 +179,13 @@ function init(){
     opt.value = a; opt.textContent = a; aSel.appendChild(opt);
   });
 
+  // Poblar select de bloques en filtros
+  var bSel = document.getElementById('bloque-select');
+  ALL_BLOQUES.forEach(function(b){
+    var opt = document.createElement('option');
+    opt.value = b; opt.textContent = b; bSel.appendChild(opt);
+  });
+
   renderDash(DATA);
   renderFilters();
   renderList();
@@ -149,6 +195,7 @@ function getBloqueColor(b){
   return BC[ALL_BLOQUES.indexOf(b) % BC.length];
 }
 
+/* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
     if(dashFiltroTipo && p.tipo !== dashFiltroTipo) return false;
@@ -182,7 +229,7 @@ function renderDash(data){
   if(dashFiltroCom) partes.push('Comisi\u00f3n: '+dashFiltroCom);
   var ctx = document.getElementById('dash-context');
   if(partes.length){
-    ctx.innerHTML = 'Filtrando por: <strong>'+partes.join(' &middot; ')+'</strong> &nbsp;<button onclick="clearDash()" style="background:none;border:none;color:#1B5EA2;cursor:pointer;font-size:11px;font-weight:700;padding:0 4px">&#x2715; Limpiar</button>';
+    ctx.innerHTML = 'Filtrando: <strong>'+partes.join(' &middot; ')+'</strong> &nbsp;<button onclick="clearDash()" style="background:none;border:none;color:#1B5EA2;cursor:pointer;font-size:11px;font-weight:700;padding:0 4px">&#x2715; Limpiar</button>';
     ctx.className = 'dash-context visible';
   } else { ctx.className = 'dash-context'; }
 
@@ -218,7 +265,7 @@ function renderDash(data){
   });
   document.getElementById('bloque-bars').innerHTML = bbars;
 
-  var clist = Object.keys(s.coms).sort(function(a,b){ return s.coms[b]-s.coms[a]; }).slice(0,8);
+  var clist = Object.keys(s.coms).sort(function(a,b){ return s.coms[b]-s.coms[a]; }).slice(0,10);
   var maxC = clist.length ? s.coms[clist[0]] : 1;
   var cbars = '';
   clist.forEach(function(c){
@@ -238,6 +285,7 @@ function clickDashBloque(b){ dashFiltroBloque = dashFiltroBloque===b?'':b; rende
 function clickDashCom(c){ dashFiltroCom = dashFiltroCom===c?'':c; renderDash(getDashFiltered()); }
 function clearDash(){ dashFiltroTipo=''; dashFiltroBloque=''; dashFiltroCom=''; renderDash(DATA); }
 
+/* ── Filtros (pestaña Detalle) ─────────────────────────────────── */
 function renderFilters(){
   var tset = {};
   DATA.forEach(function(p){ tset[p.tipo]=1; });
@@ -249,20 +297,10 @@ function renderFilters(){
   });
   document.getElementById('tipo-filters').innerHTML = html;
 
-  var anyBloque = Object.keys(activeBloques).length===0;
-  var bhtml = '<button class="chip'+(anyBloque?' on':'')+'" onclick="toggleBloque(\'__all__\')">Todos</button>';
-  ALL_BLOQUES.forEach(function(b){
-    var safe = b.replace(/'/g,"\\'");
-    bhtml += '<button class="chip'+(activeBloques[b]?' on':'')+'" onclick="toggleBloque(\''+safe+'\')">'+b+'</button>';
-  });
-  document.getElementById('bloque-filters').innerHTML = bhtml;
-
   var ORIGEN_LABEL = {S:'Senado', PE:'Poder Ejecutivo', OV:'Otros'};
   var ohtml = '<button class="chip'+(activeOrigen===''?' on':'')+'" onclick="toggleOrigen(\'\')">Todos</button>';
   ['S','PE','OV'].forEach(function(o){
-    var isOn = activeOrigen===o;
-    var peStyle = o==='PE' ? (isOn ? ' style="background:#4a0a22;border-color:#4a0a22;color:#fff;font-weight:700"' : ' style="background:#7a1a3a;border-color:#7a1a3a;color:#fff;font-weight:700"') : '';
-    ohtml += '<button class="chip'+(isOn?' on':'')+'"'+peStyle+' onclick="toggleOrigen(\''+o+'\')">'+( ORIGEN_LABEL[o]||o)+'</button>';
+    ohtml += '<button class="chip'+(activeOrigen===o?' on':'')+'" onclick="toggleOrigen(\''+o+'\')">'+( ORIGEN_LABEL[o]||o)+'</button>';
   });
   document.getElementById('origen-filters').innerHTML = ohtml;
 }
@@ -271,26 +309,25 @@ function toggleTipo(t){
   if(t==='__all__'){ activeTipos={}; } else { if(activeTipos[t]) delete activeTipos[t]; else activeTipos[t]=1; }
   renderFilters(); renderList();
 }
-function toggleBloque(b){
-  if(b==='__all__'){ activeBloques={}; } else { if(activeBloques[b]) delete activeBloques[b]; else activeBloques[b]=1; }
-  renderFilters(); renderList();
-}
 function toggleOrigen(o){
   activeOrigen = activeOrigen===o ? '' : o;
   renderFilters(); renderList();
 }
+function setBloque(val){
+  activeBloque = val;
+  var el = document.getElementById('bloque-select');
+  if(el) el.className = val ? 'filter-select on' : 'filter-select';
+  renderList();
+}
 
+/* ── Lista de expedientes ──────────────────────────────────────── */
 function getFiltered(){
   var q = document.getElementById('search').value.toLowerCase().trim();
   var selCom = document.getElementById('com-select').value;
   var selAutor = document.getElementById('autor-select').value;
   return DATA.filter(function(p){
     if(Object.keys(activeTipos).length && !activeTipos[p.tipo]) return false;
-    if(Object.keys(activeBloques).length){
-      var match = false;
-      p.bloques.forEach(function(b){ if(activeBloques[b]) match=true; });
-      if(!match) return false;
-    }
+    if(activeBloque && p.bloques.indexOf(activeBloque) < 0) return false;
     if(activeOrigen && p.origen !== activeOrigen) return false;
     if(selCom && p.comisiones.indexOf(selCom) < 0) return false;
     if(selAutor && p.autores.indexOf(selAutor) < 0) return false;
@@ -345,6 +382,8 @@ function renderList(){
 }
 """
 
+# ── Template HTML ─────────────────────────────────────────────────────────────
+
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -356,6 +395,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 
+<!-- ═══ HEADER ═══ -->
 <div class="header">
   <div class="header-row">
     <span class="header-inst">Senado de la Naci&oacute;n Argentina</span>
@@ -365,76 +405,100 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="header-subtitle">{titulo}</div>
 </div>
 
-<div class="section-block">
-  <div class="section-header">
-    <h2>Dashboard</h2>
-    <span class="section-hint">Toca para filtrar</span>
-  </div>
-  <div class="section-body">
-    <div class="stat-cards">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">{total}</div>
-        <div class="stat-label">Total proyectos</div>
-      </div>
-      <div class="stat-card" style="border-left-color:#2E75B6">
-        <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
-        <div class="stat-label">Proyectos de ley</div>
-      </div>
-      <div class="stat-card" style="border-left-color:#5B4DA0">
-        <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
-        <div class="stat-label">Declaraciones</div>
-      </div>
-      <div class="stat-card" style="border-left-color:#1a7a4a">
-        <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
-        <div class="stat-label">Otros tipos</div>
-      </div>
+<!-- ═══ PESTAÑAS ═══ -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab-btn" data-tab="detalle" onclick="switchTab('detalle')">Detalle de expedientes</button>
+</div>
+
+<!-- ═══ TAB: DASHBOARD ═══ -->
+<div id="tab-dashboard" class="tab-content active">
+  <div class="section-block">
+    <div class="section-header">
+      <h2>Resumen general</h2>
+      <span class="section-hint">Toc&aacute; las barras para filtrar</span>
     </div>
-    <div id="dash-context" class="dash-context"></div>
-    <div class="dash-subtitle">Por tipo de proyecto</div>
-    <div id="tipo-bars"></div>
-    <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
-    <div id="bloque-bars"></div>
-    <div class="dash-subtitle">Por comisiones</div>
-    <div id="com-bars"></div>
+    <div class="section-body">
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total">{total}</div>
+          <div class="stat-label">Total proyectos</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#2E75B6">
+          <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
+          <div class="stat-label">Proyectos de ley</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#5B4DA0">
+          <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
+          <div class="stat-label">Declaraciones</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#1a7a4a">
+          <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
+          <div class="stat-label">Otros tipos</div>
+        </div>
+      </div>
+      <div id="dash-context" class="dash-context"></div>
+      <div class="dash-subtitle">Por tipo de proyecto</div>
+      <div id="tipo-bars"></div>
+      <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
+      <div id="bloque-bars"></div>
+      <div class="dash-subtitle">Por comisiones (Top 10)</div>
+      <div id="com-bars"></div>
+    </div>
   </div>
 </div>
 
-<div class="section-block">
-  <div class="section-header">
-    <h2>B&uacute;squeda y filtros</h2>
-  </div>
-  <div class="section-body">
-    <input class="search-box" type="text" id="search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="renderList()">
-    <div class="filter-label">Tipo</div>
-    <div class="filter-row" id="tipo-filters"></div>
-    <div class="filter-label" style="margin-top:12px">Bloque</div>
-    <div class="filter-row" id="bloque-filters"></div>
-    <div class="filter-label" style="margin-top:12px">Origen</div>
-    <div class="filter-row" id="origen-filters"></div>
-    <div class="filter-label" style="margin-top:12px">Comisi&oacute;n</div>
-    <div class="select-wrapper">
-      <select class="filter-select" id="com-select" onchange="renderList()">
-        <option value="">Todas las comisiones</option>
-      </select>
-      <span class="select-arrow">&#9660;</span>
-    </div>
-    <div class="filter-label" style="margin-top:12px">Autor</div>
-    <div class="select-wrapper">
-      <select class="filter-select" id="autor-select" onchange="renderList()">
-        <option value="">Todos los autores</option>
-      </select>
-      <span class="select-arrow">&#9660;</span>
-    </div>
-    <div class="results-count" id="results-count"></div>
-  </div>
-</div>
+<!-- ═══ TAB: DETALLE ═══ -->
+<div id="tab-detalle" class="tab-content">
+  <div class="detalle-layout">
 
-<div class="section-block" style="overflow:visible;background:transparent;box-shadow:none">
-  <div class="section-header" style="border-radius:10px 10px 0 0">
-    <h2>Expedientes</h2>
+    <!-- Panel izquierdo: filtros -->
+    <div class="filters-panel">
+      <div class="section-header">
+        <h2>B&uacute;squeda y filtros</h2>
+      </div>
+      <div class="filters-body">
+        <input class="search-box" type="text" id="search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="renderList()">
+
+        <div class="filter-label">Tipo</div>
+        <div class="filter-row" id="tipo-filters"></div>
+
+        <div class="filter-label">Bloque</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="bloque-select" onchange="setBloque(this.value)">
+            <option value="">Todos los bloques</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="filter-label">Origen</div>
+        <div class="filter-row" id="origen-filters"></div>
+
+        <div class="filter-label">Comisi&oacute;n</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="com-select" onchange="renderList()">
+            <option value="">Todas las comisiones</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="filter-label">Autor</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="autor-select" onchange="renderList()">
+            <option value="">Todos los autores</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="results-count" id="results-count"></div>
+      </div>
+    </div>
+
+    <!-- Panel derecho: expedientes -->
+    <div class="results-panel" id="list"></div>
+
   </div>
 </div>
-<div class="list-section" id="list"></div>
 
 <div class="footer">Prosecretar&iacute;a Parlamentaria &middot; Senado de la Naci&oacute;n Argentina<br>Datos al {fecha}</div>
 
@@ -452,16 +516,6 @@ init();
 def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
     """
     Genera el dashboard HTML a partir de una lista de proyectos ya procesados.
-
-    Parámetros
-    ----------
-    proyectos : list[dict]
-        Cada dict debe tener las claves:
-        nro, anio, tipo, tipo_label, extracto, autores (list), bloques (list),
-        comisiones (list), fecha, dae, origen, url
-    titulo_periodo : str   Ej: "Últimos 30 días · Actualizado 24/03/2026"
-    fecha_datos    : str   Ej: "24/03/2026"
-    archivo_salida : str   Ruta del archivo HTML a generar
     """
     proyectos = sorted(proyectos, key=lambda x: x["nro"], reverse=True)
     total = len(proyectos)
@@ -501,7 +555,6 @@ if __name__ == "__main__":
         print("Instalala con:  pip install openpyxl")
         sys.exit(1)
 
-    # Cargar padrón de senadores
     print(f"Leyendo senadores desde: {EXCEL_SENADORES}")
     try:
         wb_sen = openpyxl.load_workbook(EXCEL_SENADORES)
@@ -518,7 +571,6 @@ if __name__ == "__main__":
             senador_bloque[key] = bloque
     print(f"  → {len(senador_bloque)} senadores cargados")
 
-    # Cargar proyectos desde Excel
     print(f"Leyendo proyectos desde: {EXCEL_PROYECTOS}")
     try:
         wb_proy = openpyxl.load_workbook(EXCEL_PROYECTOS)
@@ -541,7 +593,7 @@ if __name__ == "__main__":
             return []
         return [p.strip().rstrip("-").strip() for p in s.split(" - ") if p.strip().rstrip("-").strip()]
 
-    def get_bloques(autores):
+    def get_bloques_excel(autores):
         seen, result = set(), []
         for a in autores:
             b = senador_bloque.get(a.upper(), "Sin datos")
@@ -556,7 +608,7 @@ if __name__ == "__main__":
         if not any(v for v in row):
             continue
         autores    = parse_autores(r.get("AUTOR", ""))
-        bloques    = get_bloques(autores)
+        bloques    = get_bloques_excel(autores)
         comisiones = [r.get(f"COMISION{i}") for i in range(1, 4) if r.get(f"COMISION{i}")]
         mesa       = r.get("MESA DE ENTRADAS", "") or ""
         fecha      = mesa.split(" -")[0].strip() if mesa else ""
@@ -584,4 +636,3 @@ if __name__ == "__main__":
     print(f"  → {sum(1 for p in proyectos if p['url'])} con hipervínculo")
 
     generar_desde_lista(proyectos, TITULO_PERIODO, FECHA_DATOS, ARCHIVO_SALIDA)
-    print(f"\nSubí el {ARCHIVO_SALIDA} a GitHub y la URL se actualizará en 1-2 minutos.")
