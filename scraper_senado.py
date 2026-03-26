@@ -33,7 +33,7 @@ except ImportError:
 
 # ─────────────────────────────── Configuración ────────────────────────────────
 
-FECHA_DESDE_FIJA = os.getenv("FECHA_DESDE", "")          # ej: "01/03/2026"
+FECHA_DESDE_FIJA = os.getenv("FECHA_DESDE", "")
 VENTANA_DIAS     = int(os.getenv("VENTANA_DIAS", "30"))
 ARCHIVO_SALIDA   = os.getenv("ARCHIVO_SALIDA", "index.html")
 
@@ -43,7 +43,6 @@ URL_FECHA_MESA = f"{BASE_URL}/parlamentario/parlamentaria/fechaMesa"
 URL_SENADORES_ALFA   = f"{BASE_URL}/senadores/listados/listaSenadoRes"
 URL_SENADORES_BLOQUE = f"{BASE_URL}/senadores/listados/agrupados-por-bloques"
 
-# Tipos de expediente que nos interesan (los demás se descartan)
 TIPOS_INCLUIR = {"PL", "PD", "PC", "PR", "CA", "AC", "CV"}
 
 TIPOS = {
@@ -56,7 +55,6 @@ TIPOS = {
     "CV": "Com. Varias",
 }
 
-# Pausa entre requests al servidor (segundos)
 PAUSA_ENTRE_REQUESTS = 1.0
 
 # ─────────────────────────────── Logger ───────────────────────────────────────
@@ -72,86 +70,14 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-# ─────────────────────────────── Senadores (web) ─────────────────────────────
-
-def scraper_senadores_web(session):
-    """
-    Obtiene el padrón de senadores con sus bloques actuales desde la web.
-    Usa dos páginas:
-      1. listaSenadoRes → nombres en formato "Apellido, Nombre" + ID
-      2. agrupados-por-bloques → bloque real de cada senador + ID
-    Combina por ID de senador. Solo necesita 2 requests HTTP.
-
-    Retorna: {"APELLIDO, NOMBRE": "Nombre del Bloque"}
-    """
-    log.info("Scraping senadores desde la web del Senado...")
-
-    # ── Paso 1: Lista alfabética → {id: "APELLIDO, NOMBRE"} ──────────────
-    nombres = {}
-    try:
-        resp = session.get(URL_SENADORES_ALFA, timeout=30)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        for link in soup.select("a[href*='/senadores/senador/']"):
-            href = link.get("href", "")
-            m = re.search(r"/senadores/senador/(\d+)", href)
-            if m:
-                sid  = m.group(1)
-                name = link.get_text(strip=True)  # "Abad, Maximiliano"
-                if "," in name:
-                    nombres[sid] = normalizar_autor(name)
-
-        log.info(f"  → {len(nombres)} senadores en lista alfabética")
-    except Exception as exc:
-        log.error(f"  Error obteniendo lista alfabética: {exc}")
-        return {}
-
-    time.sleep(0.5)
-
-    # ── Paso 2: Agrupados por bloque → {id: bloque} ──────────────────────
-    bloques_por_id = {}
-    try:
-        resp = session.get(URL_SENADORES_BLOQUE, timeout=30)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        for tr in soup.select("table tr"):
-            tds = tr.find_all("td")
-            if not tds:
-                continue
-
-            # La primera celda contiene el nombre del bloque
-            bloque_nombre = tds[0].get_text(strip=True)
-            if not bloque_nombre:
-                continue
-
-            # Todos los links a senadores en esta fila
-            for link in tr.select("a[href*='/senadores/senador/']"):
-                href = link.get("href", "")
-                m = re.search(r"/senadores/senador/(\d+)", href)
-                if m:
-                    bloques_por_id[m.group(1)] = bloque_nombre
-
-        log.info(f"  → {len(bloques_por_id)} senadores en página de bloques")
-    except Exception as exc:
-        log.error(f"  Error obteniendo bloques: {exc}")
-        return {}
-
-    # ── Paso 3: Combinar ─────────────────────────────────────────────────
-    padron = {}
-    for sid, nombre_norm in nombres.items():
-        padron[nombre_norm] = bloques_por_id.get(sid, "Sin datos")
-
-    sin_bloque = sum(1 for v in padron.values() if v == "Sin datos")
-    log.info(f"  → {len(padron)} senadores con bloque ({sin_bloque} sin datos)")
-    return padron
-
+# ─────────────────────────────── Helpers ─────────────────────────────────────
 
 def normalizar_autor(nombre_sitio):
     """
-    Convierte "Soria , Martin Ignacio" → "SORIA, MARTIN IGNACIO"
-    o "Abad, Maximiliano" → "ABAD, MAXIMILIANO"
+    Convierte distintos formatos al estándar "APELLIDO, NOMBRE":
+      "Soria , Martin Ignacio"  → "SORIA, MARTIN IGNACIO"
+      "SORIA, MARTIN IGNACIO"   → "SORIA, MARTIN IGNACIO"
+      "Abad, Maximiliano"       → "ABAD, MAXIMILIANO"
     """
     if not nombre_sitio:
         return ""
@@ -172,6 +98,91 @@ def get_bloques(autores_normalizados, senador_bloque):
     return result
 
 
+# ─────────────────────────────── Senadores (web) ─────────────────────────────
+
+def scraper_senadores_web(session):
+    """
+    Obtiene el padrón de senadores con sus bloques actuales desde la web.
+    Usa dos páginas:
+      1. listaSenadoRes         → nombres en "Apellido, Nombre" + ID
+      2. agrupados-por-bloques  → bloque real de cada senador + ID
+    Retorna: {"APELLIDO, NOMBRE": "Nombre del Bloque"}
+    """
+    log.info("Scraping senadores desde la web del Senado...")
+
+    # ── Paso 1: Lista alfabética → {id: "APELLIDO, NOMBRE"} ──────────────
+    nombres = {}
+    try:
+        resp = session.get(URL_SENADORES_ALFA, timeout=30)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        for link in soup.select("a[href*='/senadores/senador/']"):
+            href = link.get("href", "")
+            m = re.search(r"/senadores/senador/(\d+)", href)
+            if m:
+                sid  = m.group(1)
+                name = link.get_text(strip=True)
+                if "," in name and sid not in nombres:
+                    nombres[sid] = normalizar_autor(name)
+
+        log.info(f"  → {len(nombres)} senadores en lista alfabética")
+    except Exception as exc:
+        log.error(f"  Error obteniendo lista alfabética: {exc}")
+        return {}
+
+    time.sleep(0.5)
+
+    # ── Paso 2: Agrupados por bloque → {id: bloque} ──────────────────────
+    bloques_por_id = {}
+    try:
+        resp = session.get(URL_SENADORES_BLOQUE, timeout=30)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Recorrer filas rastreando el bloque actual
+        # (las celdas con rowspan hacen que algunas filas no tengan la
+        #  primera celda, así que mantenemos current_bloque entre filas)
+        current_bloque = None
+
+        for tr in soup.select("table tr"):
+            tds = tr.find_all("td")
+            if not tds:
+                continue
+
+            # Revisar si la primera celda es un nombre de bloque
+            # (no contiene links a senadores)
+            primera = tds[0]
+            links_en_primera = primera.select("a[href*='/senadores/senador/']")
+            if not links_en_primera:
+                texto = primera.get_text(strip=True)
+                # Ignorar encabezados de tabla
+                if texto and texto.lower() not in ("bloque", "presidente/a",
+                    "integrantes", "contacto", ""):
+                    current_bloque = texto
+
+            # Encontrar TODOS los links a senadores en toda la fila
+            for link in tr.select("a[href*='/senadores/senador/']"):
+                href = link.get("href", "")
+                m = re.search(r"/senadores/senador/(\d+)", href)
+                if m and current_bloque:
+                    bloques_por_id[m.group(1)] = current_bloque
+
+        log.info(f"  → {len(bloques_por_id)} senadores en página de bloques")
+    except Exception as exc:
+        log.error(f"  Error obteniendo bloques: {exc}")
+        return {}
+
+    # ── Paso 3: Combinar ─────────────────────────────────────────────────
+    padron = {}
+    for sid, nombre_norm in nombres.items():
+        padron[nombre_norm] = bloques_por_id.get(sid, "Sin datos")
+
+    con_bloque = sum(1 for v in padron.values() if v != "Sin datos")
+    log.info(f"  → {len(padron)} senadores totales, {con_bloque} con bloque asignado")
+    return padron
+
+
 # ─────────────────────────────── Scraping: búsqueda ──────────────────────────
 
 def obtener_token(session):
@@ -182,15 +193,12 @@ def obtener_token(session):
     soup = BeautifulSoup(resp.text, "html.parser")
     inp = soup.find("input", {"name": "busqueda_proyectos[_token]"})
     if not inp:
-        raise RuntimeError("No se encontró el campo busqueda_proyectos[_token] en la página")
+        raise RuntimeError("No se encontró el campo busqueda_proyectos[_token]")
     return inp["value"]
 
 
 def parsear_tabla_resultados(html):
-    """
-    Extrae las filas de la tabla de resultados de una página de búsqueda.
-    Devuelve lista de dicts con: nro, anio, tipo, origen, fecha, extracto, url.
-    """
+    """Extrae filas de la tabla de resultados de búsqueda."""
     soup = BeautifulSoup(html, "html.parser")
     tablas = soup.find_all("table")
     if not tablas:
@@ -241,10 +249,7 @@ def parsear_tabla_resultados(html):
 
 
 def buscar_por_fechas(session, fecha_desde, fecha_hasta):
-    """
-    POST inicial + paginación GET.
-    Devuelve lista completa de expedientes del período con los datos básicos.
-    """
+    """POST inicial + paginación GET."""
     token = obtener_token(session)
 
     payload = {
@@ -294,9 +299,9 @@ def buscar_por_fechas(session, fecha_desde, fecha_hasta):
 def obtener_detalle(session, url):
     """
     Visita la página de detalle de un expediente y extrae:
-        autores_raw  : lista de strings "Apellido , Nombre"
-        comisiones   : lista de strings con nombres de comisiones
-        dae          : string con número de DAE (ej: "8/2026")
+        autores_raw  : lista de nombres (desde el atributo title de los links)
+        comisiones   : lista de nombres de comisiones
+        dae          : número de DAE (ej: "8/2026")
     """
     resultado = {"autores_raw": [], "comisiones": [], "dae": ""}
     try:
@@ -304,48 +309,39 @@ def obtener_detalle(session, url):
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        filas = []
+        # ── AUTORES ──────────────────────────────────────────────
+        # Los autores son links <a href="/senadores/senador/ID">
+        # El atributo "title" tiene el nombre en formato "APELLIDO, NOMBRE"
+        for link in soup.select("a[href*='/senadores/senador/']"):
+            title = link.get("title", "").strip()
+            texto = link.get_text(strip=True)
+            nombre = title if title else texto
+            if nombre:
+                resultado["autores_raw"].append(nombre)
+
+        # ── COMISIONES ───────────────────────────────────────────
+        # Buscar filas de tabla que contengan "ORDEN DE GIRO"
         for tr in soup.select("table tr"):
-            celdas = [td.get_text(" ", strip=True) for td in tr.find_all(["th", "td"])]
-            texto  = " ".join(celdas).strip()
-            if texto:
-                filas.append(celdas)
-
-        modo = None
-
-        for fila in filas:
-            primer = fila[0] if fila else ""
-
-            if "Listado de Autores" in primer:
-                modo = "autores"
-                continue
-            if "MESA DE ENTRADAS" in primer and "DADO CUENTA" in primer:
-                modo = "fechas"
-                continue
-            if len(fila) >= 2 and "COMISI" in primer and "FECHA DE INGRESO" in fila[1]:
-                modo = "comisiones"
-                continue
-            if "DIR. GRAL." in primer or "OBSERVACIONES" in primer:
-                modo = None
-                continue
-
-            if modo == "autores":
-                if len(fila) == 1 and primer:
-                    resultado["autores_raw"].append(primer)
-                elif len(fila) > 1:
-                    modo = None
-
-            elif modo == "fechas":
-                if len(fila) >= 3 and re.match(r"\d", primer):
-                    dae_raw = fila[2]
-                    resultado["dae"] = dae_raw.split(" ")[0] if dae_raw else ""
-                    modo = None
-
-            elif modo == "comisiones":
-                if primer and "FECHA" not in primer:
-                    com = re.sub(r"\s+ORDEN DE GIRO:\s*\d+.*$", "", primer).strip()
+            texto_fila = tr.get_text(" ", strip=True)
+            if "ORDEN DE GIRO" in texto_fila:
+                primera_celda = tr.find("td")
+                if primera_celda:
+                    com_text = primera_celda.get_text(strip=True)
+                    com = re.sub(r"\s*ORDEN DE GIRO:\s*\d+.*$", "", com_text).strip()
                     if com:
                         resultado["comisiones"].append(com)
+
+        # ── DAE ──────────────────────────────────────────────────
+        # Buscar "D.A.E." en el texto de la página y extraer el número
+        texto_completo = soup.get_text()
+        dae_match = re.search(r"D\.A\.E\.\s*(\d+/\d{4})", texto_completo)
+        if dae_match:
+            resultado["dae"] = dae_match.group(1)
+        else:
+            # Fallback: buscar patrón "N°/YYYY Tipo:"
+            dae_match2 = re.search(r"(\d+/\d{4})\s*Tipo:", texto_completo)
+            if dae_match2:
+                resultado["dae"] = dae_match2.group(1)
 
     except Exception as exc:
         log.warning(f"    Error en detalle {url}: {exc}")
@@ -371,7 +367,6 @@ def main():
 
     # 2. Obtener senadores y bloques desde la web
     senador_bloque = scraper_senadores_web(session)
-
     if not senador_bloque:
         log.warning("No se pudieron cargar senadores desde la web.")
 
@@ -397,7 +392,7 @@ def main():
         sys.exit(1)
 
     if not expedientes:
-        log.warning("No se encontraron expedientes en el período. Saliendo sin generar HTML.")
+        log.warning("No se encontraron expedientes. Saliendo sin generar HTML.")
         sys.exit(0)
 
     # 5. Enriquecer cada expediente con datos del detalle
@@ -410,10 +405,11 @@ def main():
         time.sleep(PAUSA_ENTRE_REQUESTS)
         detalle = obtener_detalle(session, exp["url"]) if exp["url"] else {}
 
+        # Los autores vienen del atributo "title" de los links, ya en
+        # formato "APELLIDO, NOMBRE" o similar. Normalizamos por seguridad.
         autores_raw   = detalle.get("autores_raw", [])
         autores_norm  = [normalizar_autor(a) for a in autores_raw if a.strip()]
         bloques       = get_bloques(autores_norm, senador_bloque)
-        autores_display = autores_norm if autores_norm else autores_raw
 
         proyectos.append({
             "nro":        exp["nro"],
@@ -421,7 +417,7 @@ def main():
             "tipo":       exp["tipo"],
             "tipo_label": TIPOS.get(exp["tipo"], exp["tipo"]),
             "extracto":   exp["extracto"],
-            "autores":    autores_display,
+            "autores":    autores_norm,
             "bloques":    bloques,
             "comisiones": detalle.get("comisiones", []),
             "fecha":      exp["fecha"],
@@ -431,6 +427,10 @@ def main():
         })
 
     log.info(f"  → {len(proyectos)} proyectos procesados")
+
+    # Conteo rápido de bloques para verificar matching
+    con_bloque = sum(1 for p in proyectos if p["bloques"] and p["bloques"] != ["Sin datos"])
+    log.info(f"  → {con_bloque}/{len(proyectos)} con bloque político identificado")
 
     # 6. Generar dashboard HTML
     if FECHA_DESDE_FIJA:
