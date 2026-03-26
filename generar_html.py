@@ -1,16 +1,18 @@
 # =============================================================================
-#  GENERADOR DE REPORTE SEMANAL — Prosecretaría Parlamentaria
+#  GENERADOR DE REPORTE — Prosecretaría Parlamentaria
 #  Senado de la Nación Argentina
 # =============================================================================
 #
-#  USO SEMANAL:
-#  1. Reemplazá el valor de EXCEL_PROYECTOS con el nombre del nuevo archivo
+#  USO MANUAL (sin scraper):
+#  1. Reemplazá EXCEL_PROYECTOS con el nombre del nuevo archivo
 #  2. Corré:  python generar_html.py
-#  3. Subí el index.html generado a GitHub
+#
+#  USO AUTOMÁTICO (desde scraper_senado.py):
+#  El scraper importa y llama a generar_desde_lista() directamente.
 #
 # =============================================================================
 
-# --- CONFIGURACIÓN (lo único que cambia cada semana) -------------------------
+# --- CONFIGURACIÓN MANUAL (solo para uso sin scraper) ------------------------
 
 EXCEL_PROYECTOS  = "Ingresados_primera_quincena_marzo.xlsx"
 EXCEL_SENADORES  = "Senadores_2026.xlsx"
@@ -21,51 +23,6 @@ ARCHIVO_SALIDA   = "index.html"
 # -----------------------------------------------------------------------------
 
 import json, sys
-try:
-    import openpyxl
-except ImportError:
-    print("ERROR: falta la librería openpyxl.")
-    print("Instalala con:  pip install openpyxl")
-    sys.exit(1)
-
-# ── 1. Cargar padrón de senadores → bloque ───────────────────────────────────
-
-print(f"Leyendo senadores desde: {EXCEL_SENADORES}")
-try:
-    wb_sen = openpyxl.load_workbook(EXCEL_SENADORES)
-except FileNotFoundError:
-    print(f"ERROR: no se encontró el archivo '{EXCEL_SENADORES}'")
-    sys.exit(1)
-
-ws_sen = wb_sen.active
-senador_bloque = {}
-for row in ws_sen.iter_rows(min_row=2, values_only=True):
-    bloque, apellido, nombre = row[0], row[1], row[2]
-    if apellido and nombre:
-        key = f"{apellido.strip()}, {nombre.strip()}".upper()
-        senador_bloque[key] = bloque
-
-print(f"  → {len(senador_bloque)} senadores cargados")
-
-# ── 2. Cargar proyectos ───────────────────────────────────────────────────────
-
-print(f"Leyendo proyectos desde: {EXCEL_PROYECTOS}")
-try:
-    wb_proy = openpyxl.load_workbook(EXCEL_PROYECTOS)
-except FileNotFoundError:
-    print(f"ERROR: no se encontró el archivo '{EXCEL_PROYECTOS}'")
-    sys.exit(1)
-
-ws_proy = wb_proy.active
-headers = [cell.value for cell in ws_proy[1]]
-
-# Extraer hipervínculos de columna NRO. (índice 1)
-nro_links = {}
-for row in ws_proy.iter_rows(min_row=2):
-    cell = row[1]
-    if cell.value and cell.hyperlink:
-        url = cell.hyperlink.target if hasattr(cell.hyperlink, "target") else str(cell.hyperlink)
-        nro_links[int(cell.value)] = url
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -77,63 +34,7 @@ TIPOS = {
     "CV": "Convenio",
 }
 
-def parse_autores(s):
-    if not s:
-        return []
-    return [p.strip().rstrip("-").strip() for p in s.split(" - ") if p.strip().rstrip("-").strip()]
-
-def get_bloques(autores):
-    seen, result = set(), []
-    for a in autores:
-        b = senador_bloque.get(a.upper(), "Sin datos")
-        if b not in seen:
-            seen.add(b)
-            result.append(b)
-    return result
-
-def extract_extracto(caratula):
-    if ":" in caratula:
-        return caratula[caratula.index(":") + 1:].strip()
-    return caratula.strip()
-
-proyectos = []
-for row in ws_proy.iter_rows(min_row=2, values_only=True):
-    r = dict(zip(headers, row))
-    if not any(v for v in row):
-        continue
-    autores    = parse_autores(r.get("AUTOR", ""))
-    bloques    = get_bloques(autores)
-    comisiones = [r.get(f"COMISION{i}") for i in range(1, 4) if r.get(f"COMISION{i}")]
-    mesa       = r.get("MESA DE ENTRADAS", "") or ""
-    fecha      = mesa.split(" -")[0].strip() if mesa else ""
-    caratula   = r.get("CARÁTULA", "") or ""
-    extracto   = extract_extracto(caratula)
-    nro        = int(r["NRO."]) if r.get("NRO.") else 0
-    origen     = r.get("ORIGEN", "S") or "S"
-
-    proyectos.append({
-        "nro":        nro,
-        "anio":       int(r["AÑO"]) if r.get("AÑO") else 2026,
-        "tipo":       r.get("TIPO", ""),
-        "tipo_label": TIPOS.get(r.get("TIPO", ""), r.get("TIPO", "")),
-        "extracto":   extracto,
-        "autores":    autores,
-        "bloques":    bloques,
-        "comisiones": comisiones,
-        "fecha":      fecha,
-        "dae":        r.get("NRO. DAE / DADO CUENTA", "") or "",
-        "origen":     origen,
-        "url":        nro_links.get(nro, ""),
-    })
-
-proyectos.sort(key=lambda x: x["nro"], reverse=True)
-total = len(proyectos)
-print(f"  → {total} proyectos procesados")
-print(f"  → {sum(1 for p in proyectos if p['url'])} con hipervínculo")
-
-datos_js = json.dumps(proyectos, ensure_ascii=False)
-
-# ── 3. Construir HTML ─────────────────────────────────────────────────────────
+# ── Estilos y scripts (constantes de módulo) ──────────────────────────────────
 
 CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
@@ -545,25 +446,142 @@ init();
 </body>
 </html>"""
 
-# Calcular totales para el HTML estático inicial
-tipos_count = {}
-for p in proyectos:
-    tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
 
-html_final = HTML_TEMPLATE.format(
-    titulo   = TITULO_PERIODO,
-    fecha    = FECHA_DATOS,
-    total    = total,
-    pl       = tipos_count.get("PL", 0),
-    pd       = tipos_count.get("PD", 0),
-    otros    = total - tipos_count.get("PL", 0) - tipos_count.get("PD", 0),
-    css      = CSS,
-    datos    = datos_js,
-    js       = JS,
-)
+# ── Función principal de generación ──────────────────────────────────────────
 
-with open(ARCHIVO_SALIDA, "w", encoding="utf-8") as f:
-    f.write(html_final)
+def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
+    """
+    Genera el dashboard HTML a partir de una lista de proyectos ya procesados.
 
-print(f"\nListo. Archivo generado: {ARCHIVO_SALIDA}  ({len(html_final):,} bytes)")
-print(f"Subilo a GitHub y la URL se actualizará en 1-2 minutos.")
+    Parámetros
+    ----------
+    proyectos : list[dict]
+        Cada dict debe tener las claves:
+        nro, anio, tipo, tipo_label, extracto, autores (list), bloques (list),
+        comisiones (list), fecha, dae, origen, url
+    titulo_periodo : str   Ej: "Últimos 30 días · Actualizado 24/03/2026"
+    fecha_datos    : str   Ej: "24/03/2026"
+    archivo_salida : str   Ruta del archivo HTML a generar
+    """
+    proyectos = sorted(proyectos, key=lambda x: x["nro"], reverse=True)
+    total = len(proyectos)
+
+    tipos_count = {}
+    for p in proyectos:
+        tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
+
+    datos_js = json.dumps(proyectos, ensure_ascii=False)
+
+    html_final = HTML_TEMPLATE.format(
+        titulo = titulo_periodo,
+        fecha  = fecha_datos,
+        total  = total,
+        pl     = tipos_count.get("PL", 0),
+        pd     = tipos_count.get("PD", 0),
+        otros  = total - tipos_count.get("PL", 0) - tipos_count.get("PD", 0),
+        css    = CSS,
+        datos  = datos_js,
+        js     = JS,
+    )
+
+    with open(archivo_salida, "w", encoding="utf-8") as f:
+        f.write(html_final)
+
+    print(f"Listo. Archivo generado: {archivo_salida}  ({len(html_final):,} bytes)")
+    print(f"  → {total} proyectos  |  {tipos_count.get('PL',0)} PL  |  {tipos_count.get('PD',0)} PD")
+
+
+# ── Modo manual: leer desde Excel ─────────────────────────────────────────────
+
+if __name__ == "__main__":
+    try:
+        import openpyxl
+    except ImportError:
+        print("ERROR: falta la librería openpyxl.")
+        print("Instalala con:  pip install openpyxl")
+        sys.exit(1)
+
+    # Cargar padrón de senadores
+    print(f"Leyendo senadores desde: {EXCEL_SENADORES}")
+    try:
+        wb_sen = openpyxl.load_workbook(EXCEL_SENADORES)
+    except FileNotFoundError:
+        print(f"ERROR: no se encontró '{EXCEL_SENADORES}'")
+        sys.exit(1)
+
+    ws_sen = wb_sen.active
+    senador_bloque = {}
+    for row in ws_sen.iter_rows(min_row=2, values_only=True):
+        bloque, apellido, nombre = row[0], row[1], row[2]
+        if apellido and nombre:
+            key = f"{apellido.strip()}, {nombre.strip()}".upper()
+            senador_bloque[key] = bloque
+    print(f"  → {len(senador_bloque)} senadores cargados")
+
+    # Cargar proyectos desde Excel
+    print(f"Leyendo proyectos desde: {EXCEL_PROYECTOS}")
+    try:
+        wb_proy = openpyxl.load_workbook(EXCEL_PROYECTOS)
+    except FileNotFoundError:
+        print(f"ERROR: no se encontró '{EXCEL_PROYECTOS}'")
+        sys.exit(1)
+
+    ws_proy = wb_proy.active
+    headers = [cell.value for cell in ws_proy[1]]
+
+    nro_links = {}
+    for row in ws_proy.iter_rows(min_row=2):
+        cell = row[1]
+        if cell.value and cell.hyperlink:
+            url = cell.hyperlink.target if hasattr(cell.hyperlink, "target") else str(cell.hyperlink)
+            nro_links[int(cell.value)] = url
+
+    def parse_autores(s):
+        if not s:
+            return []
+        return [p.strip().rstrip("-").strip() for p in s.split(" - ") if p.strip().rstrip("-").strip()]
+
+    def get_bloques(autores):
+        seen, result = set(), []
+        for a in autores:
+            b = senador_bloque.get(a.upper(), "Sin datos")
+            if b not in seen:
+                seen.add(b)
+                result.append(b)
+        return result
+
+    proyectos = []
+    for row in ws_proy.iter_rows(min_row=2, values_only=True):
+        r = dict(zip(headers, row))
+        if not any(v for v in row):
+            continue
+        autores    = parse_autores(r.get("AUTOR", ""))
+        bloques    = get_bloques(autores)
+        comisiones = [r.get(f"COMISION{i}") for i in range(1, 4) if r.get(f"COMISION{i}")]
+        mesa       = r.get("MESA DE ENTRADAS", "") or ""
+        fecha      = mesa.split(" -")[0].strip() if mesa else ""
+        caratula   = r.get("CARÁTULA", "") or ""
+        extracto   = caratula[caratula.index(":") + 1:].strip() if ":" in caratula else caratula.strip()
+        nro        = int(r["NRO."]) if r.get("NRO.") else 0
+        origen     = r.get("ORIGEN", "S") or "S"
+
+        proyectos.append({
+            "nro":        nro,
+            "anio":       int(r["AÑO"]) if r.get("AÑO") else 2026,
+            "tipo":       r.get("TIPO", ""),
+            "tipo_label": TIPOS.get(r.get("TIPO", ""), r.get("TIPO", "")),
+            "extracto":   extracto,
+            "autores":    autores,
+            "bloques":    bloques,
+            "comisiones": comisiones,
+            "fecha":      fecha,
+            "dae":        r.get("NRO. DAE / DADO CUENTA", "") or "",
+            "origen":     origen,
+            "url":        nro_links.get(nro, ""),
+        })
+
+    print(f"  → {len(proyectos)} proyectos procesados")
+    print(f"  → {sum(1 for p in proyectos if p['url'])} con hipervínculo")
+
+    generar_desde_lista(proyectos, TITULO_PERIODO, FECHA_DATOS, ARCHIVO_SALIDA)
+    print(f"\nSubí el {ARCHIVO_SALIDA} a GitHub y la URL se actualizará en 1-2 minutos.")
