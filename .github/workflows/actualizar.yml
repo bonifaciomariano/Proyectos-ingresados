@@ -30,6 +30,7 @@ jobs:
           FECHA_DESDE: "01/03/2026"
           EXCEL_SENADORES: "Senadores 2026.xlsx"
           ARCHIVO_SALIDA: index.html
+          ARCHIVO_HISTORICOS: trazabilidad.tsv
 
       - name: Commit y push si hubo cambios
         run: |
