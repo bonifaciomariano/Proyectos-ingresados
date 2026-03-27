@@ -187,20 +187,26 @@ def scraper_senadores_web(session):
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for tr in soup.select("table tr"):
-            link = tr.select_one("a[href*='/senadores/senador/']")
-            if not link:
+            tds = tr.find_all("td")
+            if len(tds) < 3:
                 continue
-            href = link.get("href", "")
+            # Buscar link al senador en la 2da columna (nombre), no en la 1ra (foto)
+            name_link = tds[1].select_one("a[href*='/senadores/senador/']")
+            if not name_link:
+                # Fallback: buscar en cualquier celda
+                name_link = tr.select_one("a[href*='/senadores/senador/']")
+                if not name_link:
+                    continue
+            href = name_link.get("href", "")
             m = re.search(r"/senadores/senador/(\d+)", href)
             if not m:
                 continue
             sid = m.group(1)
-            name = link.get_text(strip=True)
+            name = name_link.get_text(strip=True)
             if "," in name and sid not in nombres:
                 nombres[sid] = normalizar_autor(name)
             # Extraer provincia de la columna "Distrito" (3ra columna, índice 2)
-            tds = tr.find_all("td")
-            if len(tds) >= 3 and sid not in provincia_por_id:
+            if sid not in provincia_por_id:
                 prov = tds[2].get_text(strip=True)
                 if prov:
                     provincia_por_id[sid] = prov
