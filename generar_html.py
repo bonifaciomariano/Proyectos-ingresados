@@ -148,7 +148,7 @@ var TIPO_BG={PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC
 var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
 var ALL_BLOQUES=[];
 var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
-var activeTipos={},activeBloque='',activeOrigen='';
+var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='';
 
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
@@ -179,6 +179,13 @@ function init(){
   var bSel=document.getElementById('bloque-select');
   ALL_BLOQUES.forEach(function(b){
     var o=document.createElement('option');o.value=b;o.textContent=b;bSel.appendChild(o);
+  });
+
+  var provSet={};
+  DATA.forEach(function(p){(p.provincias||[]).forEach(function(pv){if(pv)provSet[pv]=1})});
+  var provSel=document.getElementById('provincia-select');
+  Object.keys(provSet).sort().forEach(function(pv){
+    var o=document.createElement('option');o.value=pv;o.textContent=pv;provSel.appendChild(o);
   });
 
   renderDash(DATA);
@@ -293,6 +300,12 @@ function setBloque(val){
   if(el)el.className=val?'filter-select on':'filter-select';
   renderList();
 }
+function setProvincia(val){
+  activeProvincia=val;
+  var el=document.getElementById('provincia-select');
+  if(el)el.className=val?'filter-select on':'filter-select';
+  renderList();
+}
 
 /* ── Parsear fecha dd/mm/yyyy a Date ───────────────────────────── */
 function parseFecha(s){
@@ -316,6 +329,7 @@ function getFiltered(){
     if(Object.keys(activeTipos).length&&!activeTipos[p.tipo])return false;
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
+    if(activeProvincia&&(!p.provincias||p.provincias.indexOf(activeProvincia)<0))return false;
     if(selCom&&p.comisiones.indexOf(selCom)<0)return false;
     if(selAutor&&p.autores.indexOf(selAutor)<0)return false;
     if(fDesde||fHasta){
@@ -350,7 +364,7 @@ function renderList(){
       btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
     });
     p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
-    var expNro=p.origen+'-'+p.nro+'/'+p.anio;
+    var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
     var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
     html+='<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
   });
@@ -361,13 +375,36 @@ function renderList(){
 function exportarExcel(){
   var filtered=getFiltered();
   if(!filtered.length){alert('No hay datos para exportar.');return}
-  var rows=[['Tipo','Nro','A\u00f1o','Origen','Fecha','Extracto','Autores','Bloques','Comisiones','URL']];
+  var headers=['Tipo','Nro','Origen','Fecha','Bloque','Autor','Coautor','Extracto','Giro 1','Giro 2','Giro 3'];
+  var rows=[headers];
+  var urls=[];
   filtered.forEach(function(p){
-    rows.push([p.tipo,p.nro,p.anio,p.origen,p.fecha,p.extracto,p.autores.join('; '),p.bloques.join('; '),p.comisiones.join('; '),p.url]);
+    var nroAa=p.nro+'/'+String(p.anio).slice(-2);
+    rows.push([
+      p.tipo,
+      nroAa,
+      p.origen,
+      p.fecha,
+      p.bloques.join('; '),
+      p.autores.join('; '),
+      (p.coautores||[]).join('; '),
+      p.extracto,
+      p.comisiones[0]||'',
+      p.comisiones[1]||'',
+      p.comisiones[2]||''
+    ]);
+    urls.push(p.url||'');
   });
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:6},{wch:8},{wch:6},{wch:8},{wch:12},{wch:60},{wch:40},{wch:25},{wch:40},{wch:50}];
+  /* Hipervínculos en columna Nro */
+  for(var i=0;i<filtered.length;i++){
+    if(urls[i]){
+      var cellRef=XLSX.utils.encode_cell({r:i+1,c:1});
+      if(ws[cellRef]){ws[cellRef].l={Target:urls[i]}}
+    }
+  }
+  ws['!cols']=[{wch:6},{wch:10},{wch:8},{wch:12},{wch:28},{wch:35},{wch:35},{wch:60},{wch:30},{wch:30},{wch:30}];
   XLSX.utils.book_append_sheet(wb,ws,'Proyectos');
   XLSX.writeFile(wb,'proyectos_filtrados.xlsx');
 }
@@ -463,6 +500,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="select-wrapper">
           <select class="filter-select" id="bloque-select" onchange="setBloque(this.value)">
             <option value="">Todos los bloques</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="filter-label">Provincia</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="provincia-select" onchange="setProvincia(this.value)">
+            <option value="">Todas las provincias</option>
           </select>
           <span class="select-arrow">&#9660;</span>
         </div>
@@ -604,8 +649,8 @@ if __name__ == "__main__":
         proyectos.append({
             "nro": nro, "anio": int(r["AÑO"]) if r.get("AÑO") else 2026,
             "tipo": r.get("TIPO", ""), "tipo_label": TIPOS.get(r.get("TIPO", ""), r.get("TIPO", "")),
-            "extracto": extracto, "autores": autores, "bloques": bloques,
-            "comisiones": comisiones, "fecha": fecha,
+            "extracto": extracto, "autores": autores, "coautores": [], "bloques": bloques,
+            "provincias": [], "comisiones": comisiones, "fecha": fecha,
             "dae": r.get("NRO. DAE / DADO CUENTA", "") or "",
             "origen": origen, "url": nro_links.get(nro, ""),
         })
