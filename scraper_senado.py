@@ -3,8 +3,8 @@
 scraper_senado.py — Scraper automático del Senado de la Nación Argentina
 =========================================================================
 Obtiene proyectos ingresados por Mesa de Entradas, obtiene bloques políticos
-desde la web, carga proyectos históricos de trazabilidad.tsv si existe,
-y genera el dashboard HTML.
+y provincias desde la web, carga proyectos históricos de trazabilidad.tsv si
+existe, clasifica autores vs coautores, y genera el dashboard HTML.
 
 Variables de entorno opcionales:
     FECHA_DESDE      Fecha de inicio fija DD/MM/YYYY. Si se define, ignora VENTANA_DIAS.
@@ -39,6 +39,7 @@ URL_BUSQUEDA   = f"{BASE_URL}/parlamentario/parlamentaria/"
 URL_FECHA_MESA = f"{BASE_URL}/parlamentario/parlamentaria/fechaMesa"
 URL_SENADORES_ALFA   = f"{BASE_URL}/senadores/listados/listaSenadoRes"
 URL_SENADORES_BLOQUE = f"{BASE_URL}/senadores/listados/agrupados-por-bloques"
+URL_SENADORES_PROV   = f"{BASE_URL}/senadores/listados/porProvincia"
 
 TIPOS_INCLUIR = {"PL", "PD", "PC", "PR", "CA", "AC", "CV"}
 
@@ -53,6 +54,35 @@ TIPOS = {
 }
 
 PAUSA_ENTRE_REQUESTS = 1.0
+
+# ─────────── Senadores 2025 (mandatos terminados) — fallback ─────────────────
+
+SENADORES_2025 = {
+    "PILATTI VERGARA": {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "CHACO"},
+    "RODAS":           {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "CHACO"},
+    "ZIMMERMANN":      {"bloque": "UNIÓN CÍVICA RADICAL",      "provincia": "CHACO"},
+    "RECALDE":         {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "CABA"},
+    "TAGLIAFERRI":     {"bloque": "FRENTE PRO",                "provincia": "CABA"},
+    "LOUSTEAU":        {"bloque": "UNIÓN CÍVICA RADICAL",      "provincia": "CABA"},
+    "CORA":            {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "ENTRE RÍOS"},
+    "DE ANGELI":       {"bloque": "FRENTE PRO",                "provincia": "ENTRE RÍOS"},
+    "OLALLA":          {"bloque": "UNIÓN CÍVICA RADICAL",      "provincia": "ENTRE RÍOS"},
+    "CREXELL":         {"bloque": "MOVIMIENTO NEUQUINO",       "provincia": "NEUQUÉN"},
+    "PARRILLI":        {"bloque": "UNIDAD CIUDADANA",          "provincia": "NEUQUÉN"},
+    "SAPAG":           {"bloque": "UNIDAD CIUDADANA",          "provincia": "NEUQUÉN"},
+    "SILVA":           {"bloque": "JUNTOS SOMOS RÍO NEGRO",    "provincia": "RÍO NEGRO"},
+    "DOÑATE":          {"bloque": "UNIDAD CIUDADANA",          "provincia": "RÍO NEGRO"},
+    "GARCÍA LARRABURU":{"bloque": "UNIDAD CIUDADANA",          "provincia": "RÍO NEGRO"},
+    "ROMERO":          {"bloque": "CAMBIO FEDERAL",            "provincia": "SALTA"},
+    "GIMÉNEZ":         {"bloque": "UNIDAD CIUDADANA",          "provincia": "SALTA"},
+    "LEAVY":           {"bloque": "UNIDAD CIUDADANA",          "provincia": "SALTA"},
+    "LEDESMA ABDALA DE ZAMORA": {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "SANTIAGO DEL ESTERO"},
+    "MONTENEGRO":      {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "SANTIAGO DEL ESTERO"},
+    "NEDER":           {"bloque": "FRENTE NACIONAL Y POPULAR", "provincia": "SANTIAGO DEL ESTERO"},
+    "DURÉ":            {"bloque": "UNIDAD CIUDADANA",          "provincia": "TIERRA DEL FUEGO"},
+    "LÓPEZ":           {"bloque": "UNIDAD CIUDADANA",          "provincia": "TIERRA DEL FUEGO"},
+    "BLANCO":          {"bloque": "UNIÓN CÍVICA RADICAL",      "provincia": "TIERRA DEL FUEGO"},
+}
 
 # ─────────────────────────────── Logger ───────────────────────────────────────
 
@@ -78,14 +108,65 @@ def normalizar_autor(nombre_sitio):
     return f"{apellido.strip()}, {nombre.strip()}".upper()
 
 
-def get_bloques(autores_normalizados, senador_bloque):
+def buscar_info(nombre_norm, senador_info):
+    """Busca bloque y provincia de un senador, con fallback a SENADORES_2025."""
+    if nombre_norm in senador_info:
+        return senador_info[nombre_norm]
+    apellido = nombre_norm.split(",")[0].strip() if "," in nombre_norm else nombre_norm.strip()
+    if apellido in SENADORES_2025:
+        return SENADORES_2025[apellido]
+    return {"bloque": "Sin datos", "provincia": ""}
+
+
+def get_bloques(autores_normalizados, senador_info):
     seen, result = set(), []
     for autor in autores_normalizados:
-        bloque = senador_bloque.get(autor, "Sin datos")
+        bloque = buscar_info(autor, senador_info)["bloque"]
         if bloque not in seen:
             seen.add(bloque)
             result.append(bloque)
     return result
+
+
+def get_provincias(autores_normalizados, senador_info):
+    seen, result = set(), []
+    for autor in autores_normalizados:
+        prov = buscar_info(autor, senador_info)["provincia"]
+        if prov and prov not in seen:
+            seen.add(prov)
+            result.append(prov)
+    return result
+
+
+def clasificar_autores(extracto, autores_detalle):
+    """Separa autores principales de coautores según 'Y OTROS' en el extracto."""
+    if not autores_detalle:
+        return [], []
+
+    atrib = extracto.split(":")[0].upper() if ":" in extracto else extracto.upper()
+    tiene_y_otros = bool(re.search(r'\bY\s+OTR[OA]S?\b', atrib))
+
+    if not tiene_y_otros:
+        return autores_detalle, []
+
+    atrib_limpio = re.sub(r'\s*\bY\s+OTR[OA]S?\b', '', atrib).strip()
+    partes = re.split(r'[,]\s*|\s+Y\s+', atrib_limpio)
+    apellidos_extracto = [p.strip() for p in partes if p.strip()]
+
+    autores, coautores = [], []
+    for autor in autores_detalle:
+        apellido = autor.split(",")[0].strip().upper()
+        es_principal = any(ap in apellido or apellido in ap for ap in apellidos_extracto)
+        if es_principal:
+            autores.append(autor)
+        else:
+            coautores.append(autor)
+
+    if not autores and autores_detalle:
+        autores = [autores_detalle[0]]
+        coautores = autores_detalle[1:]
+
+    return autores, coautores
 
 
 def construir_url_expediente(nro, anio, origen, tipo):
@@ -96,8 +177,10 @@ def construir_url_expediente(nro, anio, origen, tipo):
 # ─────────────────────────────── Senadores (web) ─────────────────────────────
 
 def scraper_senadores_web(session):
+    """Devuelve {nombre_normalizado: {"bloque": str, "provincia": str}}"""
     log.info("Scraping senadores desde la web del Senado...")
 
+    # 1) Lista alfabética → nombres + IDs
     nombres = {}
     try:
         resp = session.get(URL_SENADORES_ALFA, timeout=30)
@@ -118,6 +201,7 @@ def scraper_senadores_web(session):
 
     time.sleep(0.5)
 
+    # 2) Bloques → bloque por ID
     bloques_por_id = {}
     try:
         resp = session.get(URL_SENADORES_BLOQUE, timeout=30)
@@ -145,18 +229,52 @@ def scraper_senadores_web(session):
         log.error(f"  Error obteniendo bloques: {exc}")
         return {}
 
+    time.sleep(0.5)
+
+    # 3) Provincias → provincia por ID
+    provincia_por_id = {}
+    try:
+        resp = session.get(URL_SENADORES_PROV, timeout=30)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        current_prov = None
+        for tr in soup.select("table tr"):
+            tds = tr.find_all("td")
+            if not tds:
+                continue
+            primera = tds[0]
+            links_en_primera = primera.select("a[href*='/senadores/senador/']")
+            if not links_en_primera:
+                texto = primera.get_text(strip=True)
+                if texto and texto.lower() not in ("provincia", "integrantes",
+                    "contacto", "senador/a", ""):
+                    current_prov = texto
+            for link in tr.select("a[href*='/senadores/senador/']"):
+                href = link.get("href", "")
+                m = re.search(r"/senadores/senador/(\d+)", href)
+                if m and current_prov:
+                    provincia_por_id[m.group(1)] = current_prov
+        log.info(f"  → {len(provincia_por_id)} senadores con provincia")
+    except Exception as exc:
+        log.warning(f"  No se pudieron obtener provincias desde web: {exc}")
+
+    # 4) Combinar
     padron = {}
     for sid, nombre_norm in nombres.items():
-        padron[nombre_norm] = bloques_por_id.get(sid, "Sin datos")
+        padron[nombre_norm] = {
+            "bloque":    bloques_por_id.get(sid, "Sin datos"),
+            "provincia": provincia_por_id.get(sid, ""),
+        }
 
-    con_bloque = sum(1 for v in padron.values() if v != "Sin datos")
-    log.info(f"  → {len(padron)} senadores totales, {con_bloque} con bloque asignado")
+    con_bloque = sum(1 for v in padron.values() if v["bloque"] != "Sin datos")
+    con_prov   = sum(1 for v in padron.values() if v["provincia"])
+    log.info(f"  → {len(padron)} senadores totales, {con_bloque} con bloque, {con_prov} con provincia")
     return padron
 
 
 # ─────────────────────────────── Históricos (TSV) ────────────────────────────
 
-def cargar_historicos(tsv_path, senador_bloque):
+def cargar_historicos(tsv_path, senador_info):
     """Carga proyectos históricos desde trazabilidad.tsv"""
     if not os.path.exists(tsv_path):
         log.info(f"  No se encontró '{tsv_path}', sin históricos.")
@@ -177,41 +295,37 @@ def cargar_historicos(tsv_path, senador_bloque):
             tipo   = (row.get("TIPO") or "PL").strip()
             origen = (row.get("ORIGEN") or "S").strip()
 
-            # Extracto
             caratula = (row.get("CARATULA") or "").strip()
             extracto = caratula
             if ":" in caratula:
                 extracto = caratula[caratula.index(":") + 1:].strip()
 
-            # Fecha mesa
             mesa_raw = (row.get("MESA") or "").strip()
             fecha = ""
             fecha_match = re.search(r"(\d{2}/\d{2}/\d{4})", mesa_raw)
             if fecha_match:
                 fecha = fecha_match.group(1)
 
-            # DAE
             dae_raw = (row.get("DAE") or "").strip()
             dae = ""
             dae_match = re.match(r"(\d+)", dae_raw)
             if dae_match:
-                # Extraer año del DAE: "111 18/03/2026" → buscar año
                 anio_dae_match = re.search(r"(\d{4})", dae_raw)
                 if anio_dae_match:
                     dae = f"{dae_match.group(1)}/{anio_dae_match.group(1)}"
 
-            # Autores
             autor_raw = (row.get("AUTOR") or "").strip()
-            autores = []
+            todos_autores = []
             if autor_raw:
                 for a in autor_raw.split(" - "):
                     a = a.strip().rstrip("-").strip()
                     if a:
-                        autores.append(normalizar_autor(a))
+                        todos_autores.append(normalizar_autor(a))
 
-            bloques = get_bloques(autores, senador_bloque)
+            autores, coautores = clasificar_autores(caratula, todos_autores)
+            bloques     = get_bloques(autores, senador_info)
+            provincias  = get_provincias(autores, senador_info)
 
-            # Comisiones
             comisiones = []
             for i in range(1, 6):
                 com = (row.get(f"COM{i}") or "").strip()
@@ -227,7 +341,9 @@ def cargar_historicos(tsv_path, senador_bloque):
                 "tipo_label": TIPOS.get(tipo, tipo),
                 "extracto":   extracto,
                 "autores":    autores,
+                "coautores":  coautores,
                 "bloques":    bloques,
+                "provincias": provincias,
                 "comisiones": comisiones,
                 "fecha":      fecha,
                 "dae":        dae,
@@ -288,6 +404,7 @@ def parsear_tabla_resultados(html):
         filas.append({
             "nro": nro, "anio": anio, "tipo": tipo, "origen": origen,
             "fecha": fecha, "extracto": extracto, "url": url,
+            "caratula": caratula,
         })
     return filas
 
@@ -338,7 +455,6 @@ def obtener_detalle(session, url):
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # Autores: links a perfiles de senadores
         for link in soup.select("a[href*='/senadores/senador/']"):
             title = link.get("title", "").strip()
             texto = link.get_text(strip=True)
@@ -346,7 +462,6 @@ def obtener_detalle(session, url):
             if nombre:
                 resultado["autores_raw"].append(nombre)
 
-        # Comisiones: filas con "ORDEN DE GIRO"
         for tr in soup.select("table tr"):
             texto_fila = tr.get_text(" ", strip=True)
             if "ORDEN DE GIRO" in texto_fila:
@@ -357,7 +472,6 @@ def obtener_detalle(session, url):
                     if com:
                         resultado["comisiones"].append(com)
 
-        # DAE
         texto_completo = soup.get_text()
         dae_match = re.search(r"D\.A\.E\.\s*(\d+/\d{4})", texto_completo)
         if dae_match:
@@ -387,13 +501,13 @@ def main():
         )
     })
 
-    # 1. Obtener senadores y bloques
-    senador_bloque = scraper_senadores_web(session)
-    if not senador_bloque:
+    # 1. Obtener senadores: bloques + provincias
+    senador_info = scraper_senadores_web(session)
+    if not senador_info:
         log.warning("No se pudieron cargar senadores desde la web.")
 
     # 2. Cargar proyectos históricos (trazabilidad.tsv)
-    historicos = cargar_historicos(ARCHIVO_HISTORICOS, senador_bloque)
+    historicos = cargar_historicos(ARCHIVO_HISTORICOS, senador_info)
 
     # 3. Definir rango de fechas para scraping
     hoy         = datetime.now()
@@ -427,7 +541,12 @@ def main():
 
         autores_raw   = detalle.get("autores_raw", [])
         autores_norm  = [normalizar_autor(a) for a in autores_raw if a.strip()]
-        bloques       = get_bloques(autores_norm, senador_bloque)
+
+        caratula = exp.get("caratula", exp["extracto"])
+        autores, coautores = clasificar_autores(caratula, autores_norm)
+
+        bloques    = get_bloques(autores, senador_info)
+        provincias = get_provincias(autores, senador_info)
 
         frescos.append({
             "nro":        exp["nro"],
@@ -435,8 +554,10 @@ def main():
             "tipo":       exp["tipo"],
             "tipo_label": TIPOS.get(exp["tipo"], exp["tipo"]),
             "extracto":   exp["extracto"],
-            "autores":    autores_norm,
+            "autores":    autores,
+            "coautores":  coautores,
             "bloques":    bloques,
+            "provincias": provincias,
             "comisiones": detalle.get("comisiones", []),
             "fecha":      exp["fecha"],
             "dae":        detalle.get("dae", ""),
@@ -447,7 +568,6 @@ def main():
     log.info(f"  → {len(frescos)} proyectos frescos")
 
     # 6. Combinar: frescos + históricos (sin duplicados)
-    # Clave única = (nro, anio, tipo)
     vistos = set()
     proyectos = []
 
@@ -473,10 +593,7 @@ def main():
         sys.exit(0)
 
     # 7. Generar dashboard HTML
-    if FECHA_DESDE_FIJA:
-        titulo = f"Desde {FECHA_DESDE_FIJA} · Actualizado {hoy.strftime('%d/%m/%Y')}"
-    else:
-        titulo = f"Últimos {VENTANA_DIAS} días · Actualizado {hoy.strftime('%d/%m/%Y')}"
+    titulo = f"Actualizado {hoy.strftime('%d/%m/%Y')}"
     fecha_datos = hoy.strftime("%d/%m/%Y")
 
     try:
