@@ -39,7 +39,6 @@ URL_BUSQUEDA   = f"{BASE_URL}/parlamentario/parlamentaria/"
 URL_FECHA_MESA = f"{BASE_URL}/parlamentario/parlamentaria/fechaMesa"
 URL_SENADORES_ALFA   = f"{BASE_URL}/senadores/listados/listaSenadoRes"
 URL_SENADORES_BLOQUE = f"{BASE_URL}/senadores/listados/agrupados-por-bloques"
-URL_SENADORES_PROV   = f"{BASE_URL}/senadores/listados/porProvincia"
 
 TIPOS_INCLUIR = {"PL", "PD", "PC", "PR", "CA", "AC", "CV"}
 
@@ -180,21 +179,32 @@ def scraper_senadores_web(session):
     """Devuelve {nombre_normalizado: {"bloque": str, "provincia": str}}"""
     log.info("Scraping senadores desde la web del Senado...")
 
-    # 1) Lista alfabética → nombres + IDs
+    # 1) Lista alfabética → nombres + IDs + provincia (columna "Distrito")
     nombres = {}
+    provincia_por_id = {}
     try:
         resp = session.get(URL_SENADORES_ALFA, timeout=30)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-        for link in soup.select("a[href*='/senadores/senador/']"):
+        for tr in soup.select("table tr"):
+            link = tr.select_one("a[href*='/senadores/senador/']")
+            if not link:
+                continue
             href = link.get("href", "")
             m = re.search(r"/senadores/senador/(\d+)", href)
-            if m:
-                sid  = m.group(1)
-                name = link.get_text(strip=True)
-                if "," in name and sid not in nombres:
-                    nombres[sid] = normalizar_autor(name)
-        log.info(f"  → {len(nombres)} senadores en lista alfabética")
+            if not m:
+                continue
+            sid = m.group(1)
+            name = link.get_text(strip=True)
+            if "," in name and sid not in nombres:
+                nombres[sid] = normalizar_autor(name)
+            # Extraer provincia de la columna "Distrito" (3ra columna, índice 2)
+            tds = tr.find_all("td")
+            if len(tds) >= 3 and sid not in provincia_por_id:
+                prov = tds[2].get_text(strip=True)
+                if prov:
+                    provincia_por_id[sid] = prov
+        log.info(f"  → {len(nombres)} senadores en lista alfabética, {len(provincia_por_id)} con provincia")
     except Exception as exc:
         log.error(f"  Error obteniendo lista alfabética: {exc}")
         return {}
@@ -229,36 +239,7 @@ def scraper_senadores_web(session):
         log.error(f"  Error obteniendo bloques: {exc}")
         return {}
 
-    time.sleep(0.5)
-
-    # 3) Provincias → provincia por ID
-    provincia_por_id = {}
-    try:
-        resp = session.get(URL_SENADORES_PROV, timeout=30)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        current_prov = None
-        for tr in soup.select("table tr"):
-            tds = tr.find_all("td")
-            if not tds:
-                continue
-            primera = tds[0]
-            links_en_primera = primera.select("a[href*='/senadores/senador/']")
-            if not links_en_primera:
-                texto = primera.get_text(strip=True)
-                if texto and texto.lower() not in ("provincia", "integrantes",
-                    "contacto", "senador/a", ""):
-                    current_prov = texto
-            for link in tr.select("a[href*='/senadores/senador/']"):
-                href = link.get("href", "")
-                m = re.search(r"/senadores/senador/(\d+)", href)
-                if m and current_prov:
-                    provincia_por_id[m.group(1)] = current_prov
-        log.info(f"  → {len(provincia_por_id)} senadores con provincia")
-    except Exception as exc:
-        log.warning(f"  No se pudieron obtener provincias desde web: {exc}")
-
-    # 4) Combinar
+    # 3) Combinar
     padron = {}
     for sid, nombre_norm in nombres.items():
         padron[nombre_norm] = {
