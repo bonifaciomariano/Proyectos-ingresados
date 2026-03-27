@@ -2,15 +2,6 @@
 #  GENERADOR DE REPORTE — Prosecretaría Parlamentaria
 #  Senado de la Nación Argentina
 # =============================================================================
-#
-#  USO AUTOMÁTICO (desde scraper_senado.py):
-#  El scraper importa y llama a generar_desde_lista() directamente.
-#
-#  USO MANUAL:
-#  1. Configurá las constantes de abajo
-#  2. Corré:  python generar_html.py
-#
-# =============================================================================
 
 # --- CONFIGURACIÓN MANUAL (solo para uso sin scraper) ------------------------
 
@@ -40,7 +31,6 @@ CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;font-size:15px;line-height:1.5}
 
-/* ── Header ─────────────────────────────────────────────────────────── */
 .header{background:#1B5EA2;padding:14px 16px;position:sticky;top:0;z-index:100;border-bottom:2px solid #0d3f73}
 .header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .header-inst{font-size:9px;font-weight:400;color:rgba(255,255,255,0.75);text-transform:uppercase;letter-spacing:2px}
@@ -48,7 +38,6 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .header-title{font-size:18px;font-weight:700;color:#fff}
 .header-subtitle{font-size:12px;color:rgba(255,255,255,0.8);margin-top:1px}
 
-/* ── Pestañas ───────────────────────────────────────────────────────── */
 .tab-bar{display:flex;background:#0d3f73;padding:0 12px;gap:2px;position:sticky;top:68px;z-index:99}
 .tab-btn{padding:11px 24px;background:transparent;border:none;color:rgba(255,255,255,0.55);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:1px}
 .tab-btn.active{color:#fff;border-bottom-color:#fff}
@@ -62,31 +51,43 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .section-header h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1.5px}
 .section-hint{font-size:10px;color:rgba(255,255,255,0.65)}
 .section-body{padding:16px}
-.stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+
+/* Dashboard PC: layout en grid */
+.dash-grid{display:grid;grid-template-columns:220px 1fr 1fr;grid-template-rows:auto auto;gap:16px}
+.dash-stats{grid-row:1/3}
+.dash-tipos{grid-row:1;grid-column:2}
+.dash-bloques{grid-row:1;grid-column:3}
+.dash-coms{grid-row:2;grid-column:2/4}
+@media(max-width:900px){
+  .dash-grid{display:block}
+  .dash-stats,.dash-tipos,.dash-bloques,.dash-coms{margin-bottom:12px}
+}
+
+.stat-cards{display:flex;flex-direction:column;gap:8px}
 .stat-card{background:#F5F7FA;border-radius:8px;padding:14px 12px;border-left:4px solid #1B5EA2}
-.stat-num{font-size:30px;font-weight:700;color:#1B5EA2;line-height:1}
-.stat-label{font-size:12px;color:#4A4A4A;margin-top:3px}
-.dash-subtitle{font-size:11px;font-weight:600;color:#2E75B6;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid #D6E4F0}
-.tipo-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .12s}
+.stat-num{font-size:28px;font-weight:700;color:#1B5EA2;line-height:1}
+.stat-label{font-size:11px;color:#4A4A4A;margin-top:3px}
+.dash-subtitle{font-size:11px;font-weight:600;color:#2E75B6;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #D6E4F0}
+.tipo-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
 .tipo-bar-row:hover{background:#F0F4FA}
 .tipo-bar-row.on{background:#D6E4F0}
 .tipo-pill{font-size:11px;font-weight:700;border-radius:4px;padding:3px 8px;min-width:36px;text-align:center;flex-shrink:0}
-.tipo-nombre{font-size:13px;color:#4A4A4A;flex:1}
+.tipo-nombre{font-size:12px;color:#4A4A4A;flex:1}
 .bar-track{flex:2;height:7px;background:#D6E4F0;border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .3s}
-.tipo-count{font-size:13px;font-weight:700;min-width:28px;text-align:right}
-.bloque-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
+.tipo-count{font-size:12px;font-weight:700;min-width:28px;text-align:right}
+.bloque-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
 .bloque-row:hover,.com-row:hover{background:#F0F4FA}
 .bloque-row.on,.com-row.on{background:#D6E4F0}
-.bloque-name{font-size:12px;color:#4A4A4A;flex:1;line-height:1.3}
-.bloque-bar-track{width:80px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
+.bloque-name{font-size:11px;color:#4A4A4A;flex:1;line-height:1.3}
+.bloque-bar-track{width:70px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
 .bloque-bar-fill{height:100%;border-radius:3px;transition:width .3s}
-.bloque-count{font-size:12px;font-weight:700;color:#2E75B6;min-width:26px;text-align:right}
-.com-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
-.com-name{font-size:12px;color:#4A4A4A;flex:1;line-height:1.3}
-.com-bar-track{width:80px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
+.bloque-count{font-size:11px;font-weight:700;color:#2E75B6;min-width:24px;text-align:right}
+.com-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
+.com-name{font-size:11px;color:#4A4A4A;flex:1;line-height:1.3}
+.com-bar-track{width:70px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
 .com-bar-fill{height:100%;background:#2E75B6;border-radius:3px;transition:width .3s}
-.com-count{font-size:12px;font-weight:700;color:#2E75B6;min-width:26px;text-align:right}
+.com-count{font-size:11px;font-weight:700;color:#2E75B6;min-width:24px;text-align:right}
 .dash-context{font-size:11px;color:#2E75B6;background:#EAF0FA;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:none}
 .dash-context.visible{display:block}
 
@@ -96,27 +97,31 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .filters-panel .section-header{border-radius:0}
 .filters-body{padding:14px}
 .results-panel{flex:1;min-width:0}
-
 @media(max-width:900px){
   .detalle-layout{flex-direction:column}
   .filters-panel{width:100%;position:static}
 }
 
-/* ── Filtros ─────────────────────────────────────────────────────────── */
-.search-box{width:100%;padding:10px 12px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:13px;color:#4A4A4A;outline:none;margin-bottom:12px;background:#fff}
+.search-box{width:100%;padding:10px 12px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:13px;color:#4A4A4A;outline:none;margin-bottom:10px;background:#fff}
 .search-box:focus{border-color:#1B5EA2}
 .filter-label{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;margin-top:10px}
 .filter-label:first-child{margin-top:0}
 .filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
 .chip{padding:6px 11px;border-radius:20px;border:1.5px solid #D6E4F0;background:#fff;font-family:inherit;font-size:11px;color:#4A4A4A;cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-appearance:none;line-height:1.2}
 .chip.on{background:#1B5EA2;border-color:#1B5EA2;color:#fff;font-weight:600}
-.results-count{font-size:12px;color:#888;margin-top:10px;margin-bottom:6px}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.results-count{font-size:12px;color:#888}
+.btn-export{padding:7px 14px;border-radius:8px;border:1.5px solid #1B5EA2;background:#fff;color:#1B5EA2;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-export:hover{background:#1B5EA2;color:#fff}
 .select-wrapper{position:relative;display:block;margin-bottom:4px}
 .filter-select{width:100%;padding:8px 32px 8px 11px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;transition:border-color .15s}
 .filter-select:focus,.filter-select.on{border-color:#1B5EA2;background:#EAF0FA;color:#1B5EA2;font-weight:600}
 .select-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#888;font-size:12px}
+.date-range{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.date-input{flex:1;padding:7px 10px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none}
+.date-input:focus{border-color:#1B5EA2}
+.date-sep{font-size:11px;color:#888}
 
-/* ── Cards ───────────────────────────────────────────────────────────── */
 .card{background:#fff;border-radius:10px;margin-bottom:10px;overflow:hidden;border:1px solid #D6E4F0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
 .card-exp{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 7px;border-bottom:1px solid #EEF2F8;background:#F5F8FC}
 .exp-id{display:flex;align-items:center;gap:8px}
@@ -136,54 +141,44 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
 """
 
-# ── JavaScript ────────────────────────────────────────────────────────────────
-
 JS = r"""
-var TIPOS = {PL:'Proy. de Ley',PD:'Declaraci\u00f3n',PC:'Comunicaci\u00f3n',PR:'Resoluci\u00f3n',CA:'Com. Auditor\u00eda',AC:'Acuerdo',CV:'Com. Varias'};
-var TIPO_FG = {PL:'#1B5EA2',PD:'#2E75B6',PC:'#0d7a4a',PR:'#5B4DA0',CA:'#1a7a4a',AC:'#7a5c1a',CV:'#7a1a3a'};
-var TIPO_BG = {PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC:'#F9F0DA',CV:'#FAE0EA'};
-var BC = ['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
-var ALL_BLOQUES = [];
-var dashFiltroTipo = '', dashFiltroBloque = '', dashFiltroCom = '';
-var activeTipos = {}, activeBloque = '', activeOrigen = '';
+var TIPOS={PL:'Proy. de Ley',PD:'Declaraci\u00f3n',PC:'Comunicaci\u00f3n',PR:'Resoluci\u00f3n',CA:'Com. Auditor\u00eda',AC:'Acuerdo',CV:'Com. Varias'};
+var TIPO_FG={PL:'#1B5EA2',PD:'#2E75B6',PC:'#0d7a4a',PR:'#5B4DA0',CA:'#1a7a4a',AC:'#7a5c1a',CV:'#7a1a3a'};
+var TIPO_BG={PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC:'#F9F0DA',CV:'#FAE0EA'};
+var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
+var ALL_BLOQUES=[];
+var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
+var activeTipos={},activeBloque='',activeOrigen='';
 
-/* ── Pestañas ──────────────────────────────────────────────────── */
 function switchTab(id){
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelector('[data-tab="'+id+'"]').classList.add('active');
 }
 
-/* ── Init ──────────────────────────────────────────────────────── */
 function init(){
-  var bset = {};
-  DATA.forEach(function(p){ p.bloques.forEach(function(b){ if(b) bset[b]=1; }); });
-  ALL_BLOQUES = Object.keys(bset).sort();
+  var bset={};
+  DATA.forEach(function(p){p.bloques.forEach(function(b){if(b)bset[b]=1})});
+  ALL_BLOQUES=Object.keys(bset).sort();
 
-  var cset = {};
-  DATA.forEach(function(p){ p.comisiones.forEach(function(c){ cset[c]=1; }); });
-  var coms = Object.keys(cset).sort();
-  var cSel = document.getElementById('com-select');
-  coms.forEach(function(c){
-    var opt = document.createElement('option');
-    opt.value = c; opt.textContent = c; cSel.appendChild(opt);
+  var cset={};
+  DATA.forEach(function(p){p.comisiones.forEach(function(c){cset[c]=1})});
+  var cSel=document.getElementById('com-select');
+  Object.keys(cset).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cSel.appendChild(o);
   });
 
-  var aset = {};
-  DATA.forEach(function(p){ p.autores.forEach(function(a){ aset[a]=1; }); });
-  var autores = Object.keys(aset).sort();
-  var aSel = document.getElementById('autor-select');
-  autores.forEach(function(a){
-    var opt = document.createElement('option');
-    opt.value = a; opt.textContent = a; aSel.appendChild(opt);
+  var aset={};
+  DATA.forEach(function(p){p.autores.forEach(function(a){aset[a]=1})});
+  var aSel=document.getElementById('autor-select');
+  Object.keys(aset).sort().forEach(function(a){
+    var o=document.createElement('option');o.value=a;o.textContent=a;aSel.appendChild(o);
   });
 
-  // Poblar select de bloques en filtros
-  var bSel = document.getElementById('bloque-select');
+  var bSel=document.getElementById('bloque-select');
   ALL_BLOQUES.forEach(function(b){
-    var opt = document.createElement('option');
-    opt.value = b; opt.textContent = b; bSel.appendChild(opt);
+    var o=document.createElement('option');o.value=b;o.textContent=b;bSel.appendChild(o);
   });
 
   renderDash(DATA);
@@ -191,198 +186,192 @@ function init(){
   renderList();
 }
 
-function getBloqueColor(b){
-  return BC[ALL_BLOQUES.indexOf(b) % BC.length];
-}
+function getBloqueColor(b){return BC[ALL_BLOQUES.indexOf(b)%BC.length]}
 
 /* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
-    if(dashFiltroTipo && p.tipo !== dashFiltroTipo) return false;
-    if(dashFiltroBloque && p.bloques.indexOf(dashFiltroBloque) < 0) return false;
-    if(dashFiltroCom && p.comisiones.indexOf(dashFiltroCom) < 0) return false;
+    if(dashFiltroTipo&&p.tipo!==dashFiltroTipo)return false;
+    if(dashFiltroBloque&&p.bloques.indexOf(dashFiltroBloque)<0)return false;
+    if(dashFiltroCom&&p.comisiones.indexOf(dashFiltroCom)<0)return false;
     return true;
   });
 }
-
 function calcStats(data){
-  var tipos={}, bloques={}, coms={};
+  var t={},b={},c={};
   data.forEach(function(p){
-    tipos[p.tipo] = (tipos[p.tipo]||0)+1;
-    p.bloques.forEach(function(b){ bloques[b]=(bloques[b]||0)+1; });
-    p.comisiones.forEach(function(c){ coms[c]=(coms[c]||0)+1; });
+    t[p.tipo]=(t[p.tipo]||0)+1;
+    p.bloques.forEach(function(x){b[x]=(b[x]||0)+1});
+    p.comisiones.forEach(function(x){c[x]=(c[x]||0)+1});
   });
-  return {tipos:tipos, bloques:bloques, coms:coms};
+  return{tipos:t,bloques:b,coms:c};
 }
-
 function renderDash(data){
-  var s = calcStats(data);
-  var total = data.length;
-  document.getElementById('stat-total').innerHTML = total;
-  document.getElementById('stat-pl').innerHTML = s.tipos['PL']||0;
-  document.getElementById('stat-pd').innerHTML = s.tipos['PD']||0;
-  document.getElementById('stat-otros').innerHTML = total - (s.tipos['PL']||0) - (s.tipos['PD']||0);
+  var s=calcStats(data),total=data.length;
+  document.getElementById('stat-total').innerHTML=total;
+  document.getElementById('stat-pl').innerHTML=s.tipos['PL']||0;
+  document.getElementById('stat-pd').innerHTML=s.tipos['PD']||0;
+  document.getElementById('stat-otros').innerHTML=total-(s.tipos['PL']||0)-(s.tipos['PD']||0);
 
-  var partes = [];
-  if(dashFiltroTipo) partes.push('Tipo: '+(TIPOS[dashFiltroTipo]||dashFiltroTipo));
-  if(dashFiltroBloque) partes.push('Bloque: '+dashFiltroBloque);
-  if(dashFiltroCom) partes.push('Comisi\u00f3n: '+dashFiltroCom);
-  var ctx = document.getElementById('dash-context');
+  var partes=[];
+  if(dashFiltroTipo)partes.push('Tipo: '+(TIPOS[dashFiltroTipo]||dashFiltroTipo));
+  if(dashFiltroBloque)partes.push('Bloque: '+dashFiltroBloque);
+  if(dashFiltroCom)partes.push('Comisi\u00f3n: '+dashFiltroCom);
+  var ctx=document.getElementById('dash-context');
   if(partes.length){
-    ctx.innerHTML = 'Filtrando: <strong>'+partes.join(' &middot; ')+'</strong> &nbsp;<button onclick="clearDash()" style="background:none;border:none;color:#1B5EA2;cursor:pointer;font-size:11px;font-weight:700;padding:0 4px">&#x2715; Limpiar</button>';
-    ctx.className = 'dash-context visible';
-  } else { ctx.className = 'dash-context'; }
+    ctx.innerHTML='Filtrando: <strong>'+partes.join(' &middot; ')+'</strong> &nbsp;<button onclick="clearDash()" style="background:none;border:none;color:#1B5EA2;cursor:pointer;font-size:11px;font-weight:700;padding:0 4px">&#x2715;</button>';
+    ctx.className='dash-context visible';
+  }else{ctx.className='dash-context'}
 
-  var tipoOrder = ['PL','PD','PC','PR','CA','AC','CV'];
-  var maxT = 0;
-  tipoOrder.forEach(function(t){ if((s.tipos[t]||0)>maxT) maxT=s.tipos[t]||0; });
-  var tbars = '';
+  var tipoOrder=['PL','PD','PC','PR','CA','AC','CV'],maxT=0;
+  tipoOrder.forEach(function(t){if((s.tipos[t]||0)>maxT)maxT=s.tipos[t]||0});
+  var tb='';
   tipoOrder.forEach(function(t){
-    if(!DATA.some(function(p){return p.tipo===t;})) return;
-    var n = s.tipos[t]||0, pct = maxT ? Math.round(n/maxT*100) : 0;
-    var fg = TIPO_FG[t]||'#888', bg = TIPO_BG[t]||'#eee';
-    var on = dashFiltroTipo===t ? ' on' : '';
-    tbars += '<div class="tipo-bar-row'+on+'" onclick="clickDashTipo(\''+t+'\')">'+
-      '<span class="tipo-pill" style="background:'+bg+';color:'+fg+'">'+t+'</span>'+
-      '<span class="tipo-nombre">'+(TIPOS[t]||t)+'</span>'+
-      '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+fg+'"></div></div>'+
-      '<span class="tipo-count" style="color:'+fg+'">'+n+'</span></div>';
+    if(!DATA.some(function(p){return p.tipo===t}))return;
+    var n=s.tipos[t]||0,pct=maxT?Math.round(n/maxT*100):0;
+    var fg=TIPO_FG[t]||'#888',bg=TIPO_BG[t]||'#eee';
+    var on=dashFiltroTipo===t?' on':'';
+    tb+='<div class="tipo-bar-row'+on+'" onclick="clickDashTipo(\''+t+'\')"><span class="tipo-pill" style="background:'+bg+';color:'+fg+'">'+t+'</span><span class="tipo-nombre">'+(TIPOS[t]||t)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+fg+'"></div></div><span class="tipo-count" style="color:'+fg+'">'+n+'</span></div>';
   });
-  document.getElementById('tipo-bars').innerHTML = tbars;
+  document.getElementById('tipo-bars').innerHTML=tb;
 
-  var blist = Object.keys(s.bloques).sort(function(a,b){ return s.bloques[b]-s.bloques[a]; });
-  var maxB = blist.length ? s.bloques[blist[0]] : 1;
-  var bbars = '';
+  var blist=Object.keys(s.bloques).sort(function(a,b){return s.bloques[b]-s.bloques[a]});
+  var maxB=blist.length?s.bloques[blist[0]]:1;
+  var bb='';
   blist.forEach(function(b){
-    var n = s.bloques[b], pct = Math.round(n/maxB*100);
-    var color = getBloqueColor(b);
-    var safe = b.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    var on = dashFiltroBloque===b ? ' on' : '';
-    bbars += '<div class="bloque-row'+on+'" onclick="clickDashBloque(\''+safe+'\')">'+
-      '<span class="bloque-name">'+b+'</span>'+
-      '<div class="bloque-bar-track"><div class="bloque-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+
-      '<span class="bloque-count">'+n+'</span></div>';
+    var n=s.bloques[b],pct=Math.round(n/maxB*100),color=getBloqueColor(b);
+    var safe=b.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var on=dashFiltroBloque===b?' on':'';
+    bb+='<div class="bloque-row'+on+'" onclick="clickDashBloque(\''+safe+'\')"><span class="bloque-name">'+b+'</span><div class="bloque-bar-track"><div class="bloque-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><span class="bloque-count">'+n+'</span></div>';
   });
-  document.getElementById('bloque-bars').innerHTML = bbars;
+  document.getElementById('bloque-bars').innerHTML=bb;
 
-  var clist = Object.keys(s.coms).sort(function(a,b){ return s.coms[b]-s.coms[a]; }).slice(0,10);
-  var maxC = clist.length ? s.coms[clist[0]] : 1;
-  var cbars = '';
+  var clist=Object.keys(s.coms).sort(function(a,b){return s.coms[b]-s.coms[a]}).slice(0,10);
+  var maxC=clist.length?s.coms[clist[0]]:1;
+  var cb='';
   clist.forEach(function(c){
-    var n = s.coms[c], pct = Math.round(n/maxC*100);
-    var safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    var on = dashFiltroCom===c ? ' on' : '';
-    cbars += '<div class="com-row'+on+'" onclick="clickDashCom(\''+safe+'\')">'+
-      '<span class="com-name">'+c+'</span>'+
-      '<div class="com-bar-track"><div class="com-bar-fill" style="width:'+pct+'%"></div></div>'+
-      '<span class="com-count">'+n+'</span></div>';
+    var n=s.coms[c],pct=Math.round(n/maxC*100);
+    var safe=c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var on=dashFiltroCom===c?' on':'';
+    cb+='<div class="com-row'+on+'" onclick="clickDashCom(\''+safe+'\')"><span class="com-name">'+c+'</span><div class="com-bar-track"><div class="com-bar-fill" style="width:'+pct+'%"></div></div><span class="com-count">'+n+'</span></div>';
   });
-  document.getElementById('com-bars').innerHTML = cbars;
+  document.getElementById('com-bars').innerHTML=cb;
 }
+function clickDashTipo(t){dashFiltroTipo=dashFiltroTipo===t?'':t;renderDash(getDashFiltered())}
+function clickDashBloque(b){dashFiltroBloque=dashFiltroBloque===b?'':b;renderDash(getDashFiltered())}
+function clickDashCom(c){dashFiltroCom=dashFiltroCom===c?'':c;renderDash(getDashFiltered())}
+function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(DATA)}
 
-function clickDashTipo(t){ dashFiltroTipo = dashFiltroTipo===t?'':t; renderDash(getDashFiltered()); }
-function clickDashBloque(b){ dashFiltroBloque = dashFiltroBloque===b?'':b; renderDash(getDashFiltered()); }
-function clickDashCom(c){ dashFiltroCom = dashFiltroCom===c?'':c; renderDash(getDashFiltered()); }
-function clearDash(){ dashFiltroTipo=''; dashFiltroBloque=''; dashFiltroCom=''; renderDash(DATA); }
-
-/* ── Filtros (pestaña Detalle) ─────────────────────────────────── */
+/* ── Filtros ───────────────────────────────────────────────────── */
 function renderFilters(){
-  var tset = {};
-  DATA.forEach(function(p){ tset[p.tipo]=1; });
-  var tiposUsed = Object.keys(tset).sort();
-  var anyTipo = Object.keys(activeTipos).length===0;
-  var html = '<button class="chip'+(anyTipo?' on':'')+'" onclick="toggleTipo(\'__all__\')">Todos</button>';
-  tiposUsed.forEach(function(t){
-    html += '<button class="chip'+(activeTipos[t]?' on':'')+'" onclick="toggleTipo(\''+t+'\')">'+t+' &middot; '+(TIPOS[t]||t)+'</button>';
+  var tset={};
+  DATA.forEach(function(p){tset[p.tipo]=1});
+  var anyT=Object.keys(activeTipos).length===0;
+  var h='<button class="chip'+(anyT?' on':'')+'" onclick="toggleTipo(\'__all__\')">Todos</button>';
+  Object.keys(tset).sort().forEach(function(t){
+    h+='<button class="chip'+(activeTipos[t]?' on':'')+'" onclick="toggleTipo(\''+t+'\')">'+t+' &middot; '+(TIPOS[t]||t)+'</button>';
   });
-  document.getElementById('tipo-filters').innerHTML = html;
+  document.getElementById('tipo-filters').innerHTML=h;
 
-  var ORIGEN_LABEL = {S:'Senado', PE:'Poder Ejecutivo', OV:'Otros'};
-  var ohtml = '<button class="chip'+(activeOrigen===''?' on':'')+'" onclick="toggleOrigen(\'\')">Todos</button>';
-  ['S','PE','OV'].forEach(function(o){
-    ohtml += '<button class="chip'+(activeOrigen===o?' on':'')+'" onclick="toggleOrigen(\''+o+'\')">'+( ORIGEN_LABEL[o]||o)+'</button>';
+  var ORIGEN_LABEL={S:'Senado',PE:'Poder Ejecutivo',CD:'Diputados',OV:'Otros'};
+  var ohtml='<button class="chip'+(activeOrigen===''?' on':'')+'" onclick="toggleOrigen(\'\')">Todos</button>';
+  var oset={};
+  DATA.forEach(function(p){oset[p.origen]=1});
+  Object.keys(oset).sort().forEach(function(o){
+    ohtml+='<button class="chip'+(activeOrigen===o?' on':'')+'" onclick="toggleOrigen(\''+o+'\')">'+(ORIGEN_LABEL[o]||o)+'</button>';
   });
-  document.getElementById('origen-filters').innerHTML = ohtml;
+  document.getElementById('origen-filters').innerHTML=ohtml;
 }
-
 function toggleTipo(t){
-  if(t==='__all__'){ activeTipos={}; } else { if(activeTipos[t]) delete activeTipos[t]; else activeTipos[t]=1; }
-  renderFilters(); renderList();
+  if(t==='__all__'){activeTipos={}}else{if(activeTipos[t])delete activeTipos[t];else activeTipos[t]=1}
+  renderFilters();renderList();
 }
-function toggleOrigen(o){
-  activeOrigen = activeOrigen===o ? '' : o;
-  renderFilters(); renderList();
-}
+function toggleOrigen(o){activeOrigen=activeOrigen===o?'':o;renderFilters();renderList()}
 function setBloque(val){
-  activeBloque = val;
-  var el = document.getElementById('bloque-select');
-  if(el) el.className = val ? 'filter-select on' : 'filter-select';
+  activeBloque=val;
+  var el=document.getElementById('bloque-select');
+  if(el)el.className=val?'filter-select on':'filter-select';
   renderList();
 }
 
-/* ── Lista de expedientes ──────────────────────────────────────── */
+/* ── Parsear fecha dd/mm/yyyy a Date ───────────────────────────── */
+function parseFecha(s){
+  if(!s)return null;
+  var p=s.split('/');
+  if(p.length!==3)return null;
+  return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
+}
+
+/* ── Lista ─────────────────────────────────────────────────────── */
 function getFiltered(){
-  var q = document.getElementById('search').value.toLowerCase().trim();
-  var selCom = document.getElementById('com-select').value;
-  var selAutor = document.getElementById('autor-select').value;
+  var q=document.getElementById('search').value.toLowerCase().trim();
+  var selCom=document.getElementById('com-select').value;
+  var selAutor=document.getElementById('autor-select').value;
+  var dDesde=document.getElementById('fecha-desde').value;
+  var dHasta=document.getElementById('fecha-hasta').value;
+  var fDesde=dDesde?new Date(dDesde):null;
+  var fHasta=dHasta?new Date(dHasta+'T23:59:59'):null;
+
   return DATA.filter(function(p){
-    if(Object.keys(activeTipos).length && !activeTipos[p.tipo]) return false;
-    if(activeBloque && p.bloques.indexOf(activeBloque) < 0) return false;
-    if(activeOrigen && p.origen !== activeOrigen) return false;
-    if(selCom && p.comisiones.indexOf(selCom) < 0) return false;
-    if(selAutor && p.autores.indexOf(selAutor) < 0) return false;
+    if(Object.keys(activeTipos).length&&!activeTipos[p.tipo])return false;
+    if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
+    if(activeOrigen&&p.origen!==activeOrigen)return false;
+    if(selCom&&p.comisiones.indexOf(selCom)<0)return false;
+    if(selAutor&&p.autores.indexOf(selAutor)<0)return false;
+    if(fDesde||fHasta){
+      var fp=parseFecha(p.fecha);
+      if(fp){
+        if(fDesde&&fp<fDesde)return false;
+        if(fHasta&&fp>fHasta)return false;
+      }
+    }
     if(q){
-      var hay = (p.extracto+' '+p.autores.join(' ')+' '+p.comisiones.join(' ')).toLowerCase();
-      if(hay.indexOf(q)<0) return false;
+      var hay=(p.extracto+' '+p.autores.join(' ')+' '+p.comisiones.join(' ')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
     }
     return true;
   });
 }
-
 function renderList(){
-  var filtered = getFiltered();
-  var tot = filtered.length;
-  document.getElementById('results-count').innerHTML = tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
+  var filtered=getFiltered();
+  var tot=filtered.length;
+  document.getElementById('results-count').innerHTML=tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
   if(!filtered.length){
-    document.getElementById('list').innerHTML = '<div class="no-results">Sin resultados para este filtro.</div>';
+    document.getElementById('list').innerHTML='<div class="no-results">Sin resultados para este filtro.</div>';
     return;
   }
-  var html = '';
+  var html='';
   filtered.forEach(function(p){
-    var fg = TIPO_FG[p.tipo]||'#888', bg = TIPO_BG[p.tipo]||'#eee';
-    var autoresTxt = p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
-    var btags = '', ctags = '';
+    var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
+    var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
+    var btags='',ctags='';
     p.bloques.forEach(function(b){
-      var c = getBloqueColor(b);
-      btags += '<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
+      var c=getBloqueColor(b);
+      btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
     });
-    p.comisiones.forEach(function(c){ ctags += '<span class="ctag">'+c+'</span>'; });
-    var expNro = p.origen+'-'+p.nro+'/'+p.anio;
-    var dae = (p.dae && p.dae!=='-') ? ' &middot; DAE '+p.dae : '';
-    var linkBtn = p.url ? '<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>' : '';
-    html += '<div class="card">'+
-      '<div class="card-exp">'+
-        '<div class="exp-id">'+
-          '<span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span>'+
-          '<span class="exp-nro">'+expNro+'</span>'+
-          (p.fecha ? '<span class="exp-fecha">'+p.fecha+'</span>' : '')+
-        '</div>'+linkBtn+
-      '</div>'+
-      '<div class="card-body">'+
-        '<div class="extracto">'+p.extracto+'</div>'+
-        '<div class="card-meta">'+
-          (autoresTxt ? '<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>' : '')+
-          (btags ? '<div class="meta-row">'+btags+'</div>' : '')+
-          (ctags ? '<div class="meta-row">'+ctags+'</div>' : '')+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
+    var expNro=p.origen+'-'+p.nro+'/'+p.anio;
+    var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
+    html+='<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
   });
-  document.getElementById('list').innerHTML = html;
+  document.getElementById('list').innerHTML=html;
+}
+
+/* ── Exportar a Excel ──────────────────────────────────────────── */
+function exportarExcel(){
+  var filtered=getFiltered();
+  if(!filtered.length){alert('No hay datos para exportar.');return}
+  var rows=[['Tipo','Nro','A\u00f1o','Origen','Fecha','Extracto','Autores','Bloques','Comisiones','URL']];
+  filtered.forEach(function(p){
+    rows.push([p.tipo,p.nro,p.anio,p.origen,p.fecha,p.extracto,p.autores.join('; '),p.bloques.join('; '),p.comisiones.join('; '),p.url]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:8},{wch:6},{wch:8},{wch:12},{wch:60},{wch:40},{wch:25},{wch:40},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,ws,'Proyectos');
+  XLSX.writeFile(wb,'proyectos_filtrados.xlsx');
 }
 """
-
-# ── Template HTML ─────────────────────────────────────────────────────────────
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="es">
@@ -391,11 +380,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proyectos Ingresados — {titulo}</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>{css}</style>
 </head>
 <body>
 
-<!-- ═══ HEADER ═══ -->
 <div class="header">
   <div class="header-row">
     <span class="header-inst">Senado de la Naci&oacute;n Argentina</span>
@@ -405,13 +394,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="header-subtitle">{titulo}</div>
 </div>
 
-<!-- ═══ PESTAÑAS ═══ -->
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" data-tab="detalle" onclick="switchTab('detalle')">Detalle de expedientes</button>
 </div>
 
-<!-- ═══ TAB: DASHBOARD ═══ -->
+<!-- TAB: DASHBOARD -->
 <div id="tab-dashboard" class="tab-content active">
   <div class="section-block">
     <div class="section-header">
@@ -419,40 +407,48 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="section-hint">Toc&aacute; las barras para filtrar</span>
     </div>
     <div class="section-body">
-      <div class="stat-cards">
-        <div class="stat-card">
-          <div class="stat-num" id="stat-total">{total}</div>
-          <div class="stat-label">Total proyectos</div>
+      <div id="dash-context" class="dash-context"></div>
+      <div class="dash-grid">
+        <div class="dash-stats">
+          <div class="stat-cards">
+            <div class="stat-card">
+              <div class="stat-num" id="stat-total">{total}</div>
+              <div class="stat-label">Total proyectos</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#2E75B6">
+              <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
+              <div class="stat-label">Proyectos de ley</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#5B4DA0">
+              <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
+              <div class="stat-label">Declaraciones</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#1a7a4a">
+              <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
+              <div class="stat-label">Otros tipos</div>
+            </div>
+          </div>
         </div>
-        <div class="stat-card" style="border-left-color:#2E75B6">
-          <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
-          <div class="stat-label">Proyectos de ley</div>
+        <div class="dash-tipos">
+          <div class="dash-subtitle">Por tipo de proyecto</div>
+          <div id="tipo-bars"></div>
         </div>
-        <div class="stat-card" style="border-left-color:#5B4DA0">
-          <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
-          <div class="stat-label">Declaraciones</div>
+        <div class="dash-bloques">
+          <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
+          <div id="bloque-bars"></div>
         </div>
-        <div class="stat-card" style="border-left-color:#1a7a4a">
-          <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
-          <div class="stat-label">Otros tipos</div>
+        <div class="dash-coms">
+          <div class="dash-subtitle">Por comisiones (Top 10)</div>
+          <div id="com-bars"></div>
         </div>
       </div>
-      <div id="dash-context" class="dash-context"></div>
-      <div class="dash-subtitle">Por tipo de proyecto</div>
-      <div id="tipo-bars"></div>
-      <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
-      <div id="bloque-bars"></div>
-      <div class="dash-subtitle">Por comisiones (Top 10)</div>
-      <div id="com-bars"></div>
     </div>
   </div>
 </div>
 
-<!-- ═══ TAB: DETALLE ═══ -->
+<!-- TAB: DETALLE -->
 <div id="tab-detalle" class="tab-content">
   <div class="detalle-layout">
-
-    <!-- Panel izquierdo: filtros -->
     <div class="filters-panel">
       <div class="section-header">
         <h2>B&uacute;squeda y filtros</h2>
@@ -474,6 +470,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="filter-label">Origen</div>
         <div class="filter-row" id="origen-filters"></div>
 
+        <div class="filter-label">Rango de fechas</div>
+        <div class="date-range">
+          <input type="date" class="date-input" id="fecha-desde" onchange="renderList()">
+          <span class="date-sep">a</span>
+          <input type="date" class="date-input" id="fecha-hasta" onchange="renderList()">
+        </div>
+
         <div class="filter-label">Comisi&oacute;n</div>
         <div class="select-wrapper">
           <select class="filter-select" id="com-select" onchange="renderList()">
@@ -489,14 +492,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </select>
           <span class="select-arrow">&#9660;</span>
         </div>
-
-        <div class="results-count" id="results-count"></div>
       </div>
     </div>
 
-    <!-- Panel derecho: expedientes -->
-    <div class="results-panel" id="list"></div>
-
+    <div class="results-panel">
+      <div class="results-header">
+        <span class="results-count" id="results-count"></span>
+        <button class="btn-export" onclick="exportarExcel()">&#128196; Exportar Excel</button>
+      </div>
+      <div id="list"></div>
+    </div>
   </div>
 </div>
 
@@ -511,21 +516,13 @@ init();
 </html>"""
 
 
-# ── Función principal de generación ──────────────────────────────────────────
-
 def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
-    """
-    Genera el dashboard HTML a partir de una lista de proyectos ya procesados.
-    """
-    proyectos = sorted(proyectos, key=lambda x: x["nro"], reverse=True)
+    proyectos = sorted(proyectos, key=lambda x: (x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
-
     tipos_count = {}
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
-
     datos_js = json.dumps(proyectos, ensure_ascii=False)
-
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,
@@ -537,22 +534,17 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
         datos  = datos_js,
         js     = JS,
     )
-
     with open(archivo_salida, "w", encoding="utf-8") as f:
         f.write(html_final)
-
     print(f"Listo. Archivo generado: {archivo_salida}  ({len(html_final):,} bytes)")
     print(f"  → {total} proyectos  |  {tipos_count.get('PL',0)} PL  |  {tipos_count.get('PD',0)} PD")
 
-
-# ── Modo manual: leer desde Excel ─────────────────────────────────────────────
 
 if __name__ == "__main__":
     try:
         import openpyxl
     except ImportError:
-        print("ERROR: falta la librería openpyxl.")
-        print("Instalala con:  pip install openpyxl")
+        print("ERROR: falta openpyxl. pip install openpyxl")
         sys.exit(1)
 
     print(f"Leyendo senadores desde: {EXCEL_SENADORES}")
@@ -561,7 +553,6 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print(f"ERROR: no se encontró '{EXCEL_SENADORES}'")
         sys.exit(1)
-
     ws_sen = wb_sen.active
     senador_bloque = {}
     for row in ws_sen.iter_rows(min_row=2, values_only=True):
@@ -577,10 +568,8 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print(f"ERROR: no se encontró '{EXCEL_PROYECTOS}'")
         sys.exit(1)
-
     ws_proy = wb_proy.active
     headers = [cell.value for cell in ws_proy[1]]
-
     nro_links = {}
     for row in ws_proy.iter_rows(min_row=2):
         cell = row[1]
@@ -589,24 +578,20 @@ if __name__ == "__main__":
             nro_links[int(cell.value)] = url
 
     def parse_autores(s):
-        if not s:
-            return []
+        if not s: return []
         return [p.strip().rstrip("-").strip() for p in s.split(" - ") if p.strip().rstrip("-").strip()]
 
     def get_bloques_excel(autores):
         seen, result = set(), []
         for a in autores:
             b = senador_bloque.get(a.upper(), "Sin datos")
-            if b not in seen:
-                seen.add(b)
-                result.append(b)
+            if b not in seen: seen.add(b); result.append(b)
         return result
 
     proyectos = []
     for row in ws_proy.iter_rows(min_row=2, values_only=True):
         r = dict(zip(headers, row))
-        if not any(v for v in row):
-            continue
+        if not any(v for v in row): continue
         autores    = parse_autores(r.get("AUTOR", ""))
         bloques    = get_bloques_excel(autores)
         comisiones = [r.get(f"COMISION{i}") for i in range(1, 4) if r.get(f"COMISION{i}")]
@@ -616,23 +601,14 @@ if __name__ == "__main__":
         extracto   = caratula[caratula.index(":") + 1:].strip() if ":" in caratula else caratula.strip()
         nro        = int(r["NRO."]) if r.get("NRO.") else 0
         origen     = r.get("ORIGEN", "S") or "S"
-
         proyectos.append({
-            "nro":        nro,
-            "anio":       int(r["AÑO"]) if r.get("AÑO") else 2026,
-            "tipo":       r.get("TIPO", ""),
-            "tipo_label": TIPOS.get(r.get("TIPO", ""), r.get("TIPO", "")),
-            "extracto":   extracto,
-            "autores":    autores,
-            "bloques":    bloques,
-            "comisiones": comisiones,
-            "fecha":      fecha,
-            "dae":        r.get("NRO. DAE / DADO CUENTA", "") or "",
-            "origen":     origen,
-            "url":        nro_links.get(nro, ""),
+            "nro": nro, "anio": int(r["AÑO"]) if r.get("AÑO") else 2026,
+            "tipo": r.get("TIPO", ""), "tipo_label": TIPOS.get(r.get("TIPO", ""), r.get("TIPO", "")),
+            "extracto": extracto, "autores": autores, "bloques": bloques,
+            "comisiones": comisiones, "fecha": fecha,
+            "dae": r.get("NRO. DAE / DADO CUENTA", "") or "",
+            "origen": origen, "url": nro_links.get(nro, ""),
         })
 
     print(f"  → {len(proyectos)} proyectos procesados")
-    print(f"  → {sum(1 for p in proyectos if p['url'])} con hipervínculo")
-
     generar_desde_lista(proyectos, TITULO_PERIODO, FECHA_DATOS, ARCHIVO_SALIDA)
