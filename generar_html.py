@@ -52,21 +52,25 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .section-hint{font-size:10px;color:rgba(255,255,255,0.65)}
 .section-body{padding:16px}
 
-/* Dashboard PC: layout en grid */
-.dash-grid{display:grid;grid-template-columns:220px 1fr 1fr;grid-template-rows:auto auto;gap:16px}
-.dash-stats{grid-row:1/3}
-.dash-tipos{grid-row:1;grid-column:2}
-.dash-bloques{grid-row:1;grid-column:3}
-.dash-coms{grid-row:2;grid-column:2/4}
+/* Dashboard PC: fila de stats arriba + 3 columnas iguales abajo */
+.dash-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.dash-panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 @media(max-width:900px){
-  .dash-grid{display:block}
-  .dash-stats,.dash-tipos,.dash-bloques,.dash-coms{margin-bottom:12px}
+  .dash-stats-row{grid-template-columns:repeat(2,1fr)}
+  .dash-panels-row{grid-template-columns:1fr}
 }
 
-.stat-cards{display:flex;flex-direction:column;gap:8px}
 .stat-card{background:#F5F7FA;border-radius:8px;padding:14px 12px;border-left:4px solid #1B5EA2}
 .stat-num{font-size:28px;font-weight:700;color:#1B5EA2;line-height:1}
 .stat-label{font-size:11px;color:#4A4A4A;margin-top:3px}
+
+/* Filtro de año */
+.anio-filter{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.anio-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-right:4px}
+.anio-btn{padding:6px 18px;border-radius:20px;border:1.5px solid #D6E4F0;background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#4A4A4A;cursor:pointer;transition:all .15s}
+.anio-btn.on{background:#1B5EA2;border-color:#1B5EA2;color:#fff}
+.anio-btn:hover:not(.on){border-color:#2E75B6;color:#2E75B6}
+
 .dash-subtitle{font-size:11px;font-weight:600;color:#2E75B6;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #D6E4F0}
 .tipo-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
 .tipo-bar-row:hover{background:#F0F4FA}
@@ -149,12 +153,29 @@ var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#
 var ALL_BLOQUES=[];
 var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='';
+var activeAnio='';
 
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelector('[data-tab="'+id+'"]').classList.add('active');
+}
+
+function setAnio(anio){
+  activeAnio = activeAnio===anio ? '' : anio;
+  dashFiltroTipo=''; dashFiltroBloque=''; dashFiltroCom='';
+  document.querySelectorAll('.anio-btn').forEach(function(b){
+    b.classList.toggle('on', b.dataset.anio===activeAnio);
+  });
+  renderDash(getDataForDash());
+  renderFilters();
+  renderList();
+}
+
+function getDataForDash(){
+  if(!activeAnio) return DATA;
+  return DATA.filter(function(p){return String(p.anio)===activeAnio});
 }
 
 function init(){
@@ -198,6 +219,7 @@ function getBloqueColor(b){return BC[ALL_BLOQUES.indexOf(b)%BC.length]}
 /* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
+    if(activeAnio&&String(p.anio)!==activeAnio)return false;
     if(dashFiltroTipo&&p.tipo!==dashFiltroTipo)return false;
     if(dashFiltroBloque&&p.bloques.indexOf(dashFiltroBloque)<0)return false;
     if(dashFiltroCom&&p.comisiones.indexOf(dashFiltroCom)<0)return false;
@@ -267,7 +289,7 @@ function renderDash(data){
 function clickDashTipo(t){dashFiltroTipo=dashFiltroTipo===t?'':t;renderDash(getDashFiltered())}
 function clickDashBloque(b){dashFiltroBloque=dashFiltroBloque===b?'':b;renderDash(getDashFiltered())}
 function clickDashCom(c){dashFiltroCom=dashFiltroCom===c?'':c;renderDash(getDashFiltered())}
-function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(DATA)}
+function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(getDataForDash())}
 
 /* ── Filtros ───────────────────────────────────────────────────── */
 function renderFilters(){
@@ -326,6 +348,7 @@ function getFiltered(){
   var fHasta=dHasta?new Date(dHasta+'T23:59:59'):null;
 
   return DATA.filter(function(p){
+    if(activeAnio&&String(p.anio)!==activeAnio)return false;
     if(Object.keys(activeTipos).length&&!activeTipos[p.tipo])return false;
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
@@ -444,41 +467,50 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="section-hint">Toc&aacute; las barras para filtrar</span>
     </div>
     <div class="section-body">
+
+      <div class="anio-filter">
+        <span class="anio-label">A&ntilde;o</span>
+        <button class="anio-btn on" data-anio="" onclick="setAnio('')">Todos</button>
+        <button class="anio-btn" data-anio="2025" onclick="setAnio('2025')">2025</button>
+        <button class="anio-btn" data-anio="2026" onclick="setAnio('2026')">2026</button>
+      </div>
+
       <div id="dash-context" class="dash-context"></div>
-      <div class="dash-grid">
-        <div class="dash-stats">
-          <div class="stat-cards">
-            <div class="stat-card">
-              <div class="stat-num" id="stat-total">{total}</div>
-              <div class="stat-label">Total proyectos</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#2E75B6">
-              <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
-              <div class="stat-label">Proyectos de ley</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#5B4DA0">
-              <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
-              <div class="stat-label">Declaraciones</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#1a7a4a">
-              <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
-              <div class="stat-label">Otros tipos</div>
-            </div>
-          </div>
+
+      <div class="dash-stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total">{total}</div>
+          <div class="stat-label">Total proyectos</div>
         </div>
-        <div class="dash-tipos">
+        <div class="stat-card" style="border-left-color:#2E75B6">
+          <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
+          <div class="stat-label">Proyectos de ley</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#5B4DA0">
+          <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
+          <div class="stat-label">Declaraciones</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#1a7a4a">
+          <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
+          <div class="stat-label">Otros tipos</div>
+        </div>
+      </div>
+
+      <div class="dash-panels-row">
+        <div>
           <div class="dash-subtitle">Por tipo de proyecto</div>
           <div id="tipo-bars"></div>
         </div>
-        <div class="dash-bloques">
+        <div>
           <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
           <div id="bloque-bars"></div>
         </div>
-        <div class="dash-coms">
+        <div>
           <div class="dash-subtitle">Por comisiones (Top 10)</div>
           <div id="com-bars"></div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
