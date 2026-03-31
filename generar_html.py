@@ -294,6 +294,14 @@ function toggleTipo(t){
   renderFilters();renderList();
 }
 function toggleOrigen(o){activeOrigen=activeOrigen===o?'':o;renderFilters();renderList()}
+function setAnioDetalle(anio){
+  activeAnio=anio;
+  ['all','2025','2026'].forEach(function(a){
+    var el=document.getElementById('anio-det-'+(a==='all'?'all':a));
+    if(el)el.className='chip'+(anio===(a==='all'?'':a)?' on':'');
+  });
+  renderList();
+}
 function setBloque(val){
   activeBloque=val;
   var el=document.getElementById('bloque-select');
@@ -326,6 +334,7 @@ function getFiltered(){
   var fHasta=dHasta?new Date(dHasta+'T23:59:59'):null;
 
   return DATA.filter(function(p){
+    if(activeAnio&&String(p.anio)!==activeAnio)return false;
     if(Object.keys(activeTipos).length&&!activeTipos[p.tipo])return false;
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
@@ -491,6 +500,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <h2>B&uacute;squeda y filtros</h2>
       </div>
       <div class="filters-body">
+        <div class="filter-label" style="margin-top:0">A&ntilde;o</div>
+        <div class="filter-row" style="margin-bottom:10px">
+          <button class="chip on" id="anio-det-all" onclick="setAnioDetalle('')">Todos</button>
+          <button class="chip" id="anio-det-2025" onclick="setAnioDetalle('2025')">2025</button>
+          <button class="chip" id="anio-det-2026" onclick="setAnioDetalle('2026')">2026</button>
+        </div>
+
         <input class="search-box" type="text" id="search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="renderList()">
 
         <div class="filter-label">Tipo</div>
