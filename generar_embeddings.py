@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 """
 generar_embeddings.py — Genera embeddings semánticos para proyectos legislativos
 =================================================================================
@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 ARCHIVO_HISTORICOS = os.getenv("ARCHIVO_HISTORICOS", "trazabilidad.tsv")
 EMBEDDINGS_PATH    = os.getenv("EMBEDDINGS_PATH", "embeddings.json")
-MODEL_NAME         = "intfloat/multilingual-e5-small"
+MODEL_NAME         = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -160,14 +160,14 @@ def main():
         return
 
     # 5. Generar embeddings
-    # fastembed.passage_embed() agrega automáticamente el prefijo "passage: "
-    # requerido por multilingual-e5, compatible con "query: " en Transformers.js
+    # fastembed.embed() genera embeddings simétricos para paraphrase models
+    # (compatible con Xenova/paraphrase-multilingual-MiniLM-L12-v2 en Transformers.js)
     textos = [construir_texto(p) for p in nuevos]
     keys   = [p["key"] for p in nuevos]
 
     log.info(f"Generando embeddings para {len(nuevos)} proyectos...")
     try:
-        vectores = list(model.passage_embed(textos))
+        vectores = list(model.embed(textos))
     except Exception as exc:
         log.error(f"Error generando embeddings: {exc}")
         log.info("Saliendo sin modificar embeddings.json.")
