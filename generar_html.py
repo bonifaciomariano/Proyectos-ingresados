@@ -481,7 +481,7 @@ async function cargarPipeline(){
   if(semPipeline!==null)return;
   var mod=await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
   mod.env.allowLocalModels=false;
-  semPipeline=await mod.pipeline('feature-extraction','Xenova/multilingual-e5-small');
+  semPipeline=await mod.pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2');
 }
 async function buscarSemantico(){
   if(!HAS_EMBEDDINGS)return;
@@ -496,7 +496,7 @@ async function buscarSemantico(){
     statusEl.textContent='Cargando modelo (1\u00aa vez ~30s)\u2026';
     await cargarPipeline();
     statusEl.textContent='Calculando similitud\u2026';
-    var out=await semPipeline('query: '+q,{pooling:'mean',normalize:true});
+    var out=await semPipeline(q,{pooling:'mean',normalize:true});
     var qv=Array.from(out.data);
     var scores=[];
     for(var k in EMBEDDINGS)scores.push({key:k,score:cosineSim(qv,EMBEDDINGS[k])});
