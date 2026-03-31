@@ -148,7 +148,7 @@ var TIPO_BG={PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC
 var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
 var ALL_BLOQUES=[];
 var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
-var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='';
+var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='',activeAnio='';
 
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
@@ -591,8 +591,17 @@ init();
 </html>"""
 
 
+def parse_fecha_sort(fecha_str):
+    # Convierte 'DD/MM/AAAA' a 'AAAAMMDD' para que Python pueda ordenar cronológicamente
+    if not fecha_str: return "00000000"
+    parts = fecha_str.split("/")
+    if len(parts) == 3:
+        return f"{parts[2]}{parts[1]}{parts[0]}"
+    return "00000000"
+
 def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
-    proyectos = sorted(proyectos, key=lambda x: (x["anio"], x["nro"]), reverse=True)
+    # Ordena por fecha exacta, luego por año y finalmente por número de expediente (más nuevo a más viejo)
+    proyectos = sorted(proyectos, key=lambda x: (parse_fecha_sort(x.get("fecha", "")), x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
     tipos_count = {}
     for p in proyectos:
