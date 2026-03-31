@@ -13,7 +13,7 @@ ARCHIVO_SALIDA   = "index.html"
 
 # -----------------------------------------------------------------------------
 
-import json, os, sys
+import json, sys
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -52,25 +52,21 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .section-hint{font-size:10px;color:rgba(255,255,255,0.65)}
 .section-body{padding:16px}
 
-/* Dashboard PC: fila de stats arriba + 3 columnas iguales abajo */
-.dash-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
-.dash-panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* Dashboard PC: layout en grid */
+.dash-grid{display:grid;grid-template-columns:220px 1fr 1fr;grid-template-rows:auto auto;gap:16px}
+.dash-stats{grid-row:1/3}
+.dash-tipos{grid-row:1;grid-column:2}
+.dash-bloques{grid-row:1;grid-column:3}
+.dash-coms{grid-row:2;grid-column:2/4}
 @media(max-width:900px){
-  .dash-stats-row{grid-template-columns:repeat(2,1fr)}
-  .dash-panels-row{grid-template-columns:1fr}
+  .dash-grid{display:block}
+  .dash-stats,.dash-tipos,.dash-bloques,.dash-coms{margin-bottom:12px}
 }
 
+.stat-cards{display:flex;flex-direction:column;gap:8px}
 .stat-card{background:#F5F7FA;border-radius:8px;padding:14px 12px;border-left:4px solid #1B5EA2}
 .stat-num{font-size:28px;font-weight:700;color:#1B5EA2;line-height:1}
 .stat-label{font-size:11px;color:#4A4A4A;margin-top:3px}
-
-/* Filtro de año */
-.anio-filter{display:flex;gap:8px;margin-bottom:12px;align-items:center}
-.anio-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;margin-right:4px}
-.anio-btn{padding:6px 18px;border-radius:20px;border:1.5px solid #D6E4F0;background:#fff;font-family:inherit;font-size:12px;font-weight:600;color:#4A4A4A;cursor:pointer;transition:all .15s}
-.anio-btn.on{background:#1B5EA2;border-color:#1B5EA2;color:#fff}
-.anio-btn:hover:not(.on){border-color:#2E75B6;color:#2E75B6}
-
 .dash-subtitle{font-size:11px;font-weight:600;color:#2E75B6;text-transform:uppercase;letter-spacing:1px;margin:0 0 8px;padding-bottom:4px;border-bottom:1px solid #D6E4F0}
 .tipo-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
 .tipo-bar-row:hover{background:#F0F4FA}
@@ -84,12 +80,12 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .bloque-row:hover,.com-row:hover{background:#F0F4FA}
 .bloque-row.on,.com-row.on{background:#D6E4F0}
 .bloque-name{font-size:11px;color:#4A4A4A;flex:1;line-height:1.3}
-.bloque-bar-track{width:70px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
+.bloque-bar-track{flex:2;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden}
 .bloque-bar-fill{height:100%;border-radius:3px;transition:width .3s}
 .bloque-count{font-size:11px;font-weight:700;color:#2E75B6;min-width:24px;text-align:right}
 .com-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .12s}
 .com-name{font-size:11px;color:#4A4A4A;flex:1;line-height:1.3}
-.com-bar-track{width:70px;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden;flex-shrink:0}
+.com-bar-track{flex:2;height:6px;background:#D6E4F0;border-radius:3px;overflow:hidden}
 .com-bar-fill{height:100%;background:#2E75B6;border-radius:3px;transition:width .3s}
 .com-count{font-size:11px;font-weight:700;color:#2E75B6;min-width:24px;text-align:right}
 .dash-context{font-size:11px;color:#2E75B6;background:#EAF0FA;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:none}
@@ -121,10 +117,10 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .filter-select{width:100%;padding:8px 32px 8px 11px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;transition:border-color .15s}
 .filter-select:focus,.filter-select.on{border-color:#1B5EA2;background:#EAF0FA;color:#1B5EA2;font-weight:600}
 .select-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:#888;font-size:12px}
-.date-range{display:flex;gap:6px;align-items:center;margin-bottom:4px}
-.date-input{flex:1;padding:7px 10px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none}
+.date-range{display:flex;flex-direction:column;gap:5px;margin-bottom:4px}
+.date-input{width:100%;padding:7px 10px;border:1.5px solid #D6E4F0;border-radius:8px;font-family:inherit;font-size:12px;color:#4A4A4A;background:#fff;outline:none}
 .date-input:focus{border-color:#1B5EA2}
-.date-sep{font-size:11px;color:#888}
+.date-sep{font-size:10px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:1px}
 
 .card{background:#fff;border-radius:10px;margin-bottom:10px;overflow:hidden;border:1px solid #D6E4F0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
 .card-exp{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 7px;border-bottom:1px solid #EEF2F8;background:#F5F8FC}
@@ -143,15 +139,6 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .ctag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;margin-right:4px;margin-bottom:3px;background:#EAF0FA;color:#1B5EA2;border:1px solid #c8daf0}
 .no-results{text-align:center;padding:48px 16px;color:#aaa;font-size:14px}
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
-
-/* ── Búsqueda semántica ─────────────────────────────────────── */
-.btn-sem{padding:10px 12px;border-radius:8px;border:1.5px solid #1B5EA2;background:#1B5EA2;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
-.btn-sem:hover:not(:disabled){background:#0d3f73;border-color:#0d3f73}
-.btn-sem:disabled{opacity:0.5;cursor:not-allowed}
-.sem-status{font-size:11px;color:#888;margin-top:3px;min-height:16px}
-.sem-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#E8F4E8;color:#1a7a4a;border:1px solid #b8e0b8;flex-shrink:0;align-self:center}
-.sem-banner{background:#EAF9EA;border:1px solid #b8e0b8;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#1a7a4a;flex-wrap:wrap;gap:6px}
-.sem-divider{border:none;border-top:1.5px solid #D6E4F0;margin:10px 0}
 """
 
 JS = r"""
@@ -162,29 +149,12 @@ var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#
 var ALL_BLOQUES=[];
 var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='';
-var activeAnio='';
 
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelector('[data-tab="'+id+'"]').classList.add('active');
-}
-
-function setAnio(anio){
-  activeAnio = activeAnio===anio ? '' : anio;
-  dashFiltroTipo=''; dashFiltroBloque=''; dashFiltroCom='';
-  document.querySelectorAll('.anio-btn').forEach(function(b){
-    b.classList.toggle('on', b.dataset.anio===activeAnio);
-  });
-  renderDash(getDataForDash());
-  renderFilters();
-  renderList();
-}
-
-function getDataForDash(){
-  if(!activeAnio) return DATA;
-  return DATA.filter(function(p){return String(p.anio)===activeAnio});
 }
 
 function init(){
@@ -218,10 +188,6 @@ function init(){
     var o=document.createElement('option');o.value=pv;o.textContent=pv;provSel.appendChild(o);
   });
 
-  if(HAS_EMBEDDINGS){
-    document.getElementById('sem-wrap').style.display='block';
-    document.getElementById('sem-inner').style.display='block';
-  }
   renderDash(DATA);
   renderFilters();
   renderList();
@@ -232,7 +198,6 @@ function getBloqueColor(b){return BC[ALL_BLOQUES.indexOf(b)%BC.length]}
 /* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
-    if(activeAnio&&String(p.anio)!==activeAnio)return false;
     if(dashFiltroTipo&&p.tipo!==dashFiltroTipo)return false;
     if(dashFiltroBloque&&p.bloques.indexOf(dashFiltroBloque)<0)return false;
     if(dashFiltroCom&&p.comisiones.indexOf(dashFiltroCom)<0)return false;
@@ -302,7 +267,7 @@ function renderDash(data){
 function clickDashTipo(t){dashFiltroTipo=dashFiltroTipo===t?'':t;renderDash(getDashFiltered())}
 function clickDashBloque(b){dashFiltroBloque=dashFiltroBloque===b?'':b;renderDash(getDashFiltered())}
 function clickDashCom(c){dashFiltroCom=dashFiltroCom===c?'':c;renderDash(getDashFiltered())}
-function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(getDataForDash())}
+function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(DATA)}
 
 /* ── Filtros ───────────────────────────────────────────────────── */
 function renderFilters(){
@@ -350,21 +315,6 @@ function parseFecha(s){
   return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
 }
 
-/* ── buildCard (compartido entre lista normal y semántica) ─────── */
-function buildCard(p,extraBadge){
-  var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
-  var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
-  var btags='',ctags='';
-  p.bloques.forEach(function(b){
-    var c=getBloqueColor(b);
-    btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
-  });
-  p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
-  var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
-  var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
-  return '<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+(extraBadge?' '+extraBadge:'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
-}
-
 /* ── Lista ─────────────────────────────────────────────────────── */
 function getFiltered(){
   var q=document.getElementById('search').value.toLowerCase().trim();
@@ -376,7 +326,6 @@ function getFiltered(){
   var fHasta=dHasta?new Date(dHasta+'T23:59:59'):null;
 
   return DATA.filter(function(p){
-    if(activeAnio&&String(p.anio)!==activeAnio)return false;
     if(Object.keys(activeTipos).length&&!activeTipos[p.tipo])return false;
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
@@ -398,21 +347,6 @@ function getFiltered(){
   });
 }
 function renderList(){
-  if(semActivo){
-    var tot=semResultados.length;
-    document.getElementById('results-count').innerHTML=tot+' resultado sem\u00e1ntico'+(tot!==1?'s':'');
-    if(!semResultados.length){
-      document.getElementById('list').innerHTML='<div class="no-results">Sin resultados sem\u00e1nticos.</div>';
-      return;
-    }
-    var q=document.getElementById('sem-search').value;
-    var html='<div class="sem-banner">\u00ab B\u00fasqueda sem\u00e1ntica: <strong>'+q+'</strong><button onclick="limpiarSemantico()" style="background:none;border:none;color:#1a7a4a;cursor:pointer;font-weight:700;font-size:13px;margin-left:10px">&#x2715; Volver a filtros</button></div>';
-    semResultados.forEach(function(sr){
-      html+=buildCard(sr.proyecto,'<span class="sem-badge">'+Math.round(sr.score*100)+'% match</span>');
-    });
-    document.getElementById('list').innerHTML=html;
-    return;
-  }
   var filtered=getFiltered();
   var tot=filtered.length;
   document.getElementById('results-count').innerHTML=tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
@@ -421,7 +355,19 @@ function renderList(){
     return;
   }
   var html='';
-  filtered.forEach(function(p){html+=buildCard(p,'')});
+  filtered.forEach(function(p){
+    var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
+    var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
+    var btags='',ctags='';
+    p.bloques.forEach(function(b){
+      var c=getBloqueColor(b);
+      btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
+    });
+    p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
+    var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
+    var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
+    html+='<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
+  });
   document.getElementById('list').innerHTML=html;
 }
 
@@ -462,64 +408,6 @@ function exportarExcel(){
   XLSX.utils.book_append_sheet(wb,ws,'Proyectos');
   XLSX.writeFile(wb,'proyectos_filtrados.xlsx');
 }
-
-/* ── Búsqueda semántica (Transformers.js, sin API key) ──────────── */
-var semActivo=false,semResultados=[],EMBEDDINGS=null,semPipeline=null;
-
-function cosineSim(a,b){
-  var dot=0,na=0,nb=0;
-  for(var i=0;i<a.length;i++){dot+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}
-  var d=Math.sqrt(na)*Math.sqrt(nb);return d?dot/d:0;
-}
-async function cargarEmbeddings(){
-  if(EMBEDDINGS!==null)return;
-  var resp=await fetch('embeddings.json');
-  if(!resp.ok)throw new Error('No se pudo cargar embeddings.json ('+resp.status+')');
-  EMBEDDINGS=await resp.json();
-}
-async function cargarPipeline(){
-  if(semPipeline!==null)return;
-  var mod=await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
-  mod.env.allowLocalModels=false;
-  semPipeline=await mod.pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2');
-}
-async function buscarSemantico(){
-  if(!HAS_EMBEDDINGS)return;
-  var q=document.getElementById('sem-search').value.trim();
-  if(!q)return;
-  var statusEl=document.getElementById('sem-status');
-  var btnEl=document.getElementById('sem-btn');
-  btnEl.disabled=true;
-  try{
-    statusEl.textContent='Cargando embeddings\u2026';
-    await cargarEmbeddings();
-    statusEl.textContent='Cargando modelo (1\u00aa vez ~30s)\u2026';
-    await cargarPipeline();
-    statusEl.textContent='Calculando similitud\u2026';
-    var out=await semPipeline(q,{pooling:'mean',normalize:true});
-    var qv=Array.from(out.data);
-    var scores=[];
-    for(var k in EMBEDDINGS)scores.push({key:k,score:cosineSim(qv,EMBEDDINGS[k])});
-    scores.sort(function(a,b){return b.score-a.score;});
-    var keyMap={};
-    DATA.forEach(function(p){keyMap[p.nro+'-'+p.anio+'-'+p.tipo]=p;});
-    semResultados=scores.slice(0,20).map(function(s){return{proyecto:keyMap[s.key],score:s.score};}).filter(function(s){return s.proyecto;});
-    semActivo=true;
-    statusEl.textContent=semResultados.length+' resultado'+(semResultados.length!==1?'s':'');
-    renderList();
-  }catch(e){
-    statusEl.textContent='Error: '+e.message;
-    console.error(e);
-  }finally{
-    btnEl.disabled=false;
-  }
-}
-function limpiarSemantico(){
-  semActivo=false;semResultados=[];
-  document.getElementById('sem-search').value='';
-  document.getElementById('sem-status').textContent='';
-  renderList();
-}
 """
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -556,50 +444,41 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="section-hint">Toc&aacute; las barras para filtrar</span>
     </div>
     <div class="section-body">
-
-      <div class="anio-filter">
-        <span class="anio-label">A&ntilde;o</span>
-        <button class="anio-btn on" data-anio="" onclick="setAnio('')">Todos</button>
-        <button class="anio-btn" data-anio="2025" onclick="setAnio('2025')">2025</button>
-        <button class="anio-btn" data-anio="2026" onclick="setAnio('2026')">2026</button>
-      </div>
-
       <div id="dash-context" class="dash-context"></div>
-
-      <div class="dash-stats-row">
-        <div class="stat-card">
-          <div class="stat-num" id="stat-total">{total}</div>
-          <div class="stat-label">Total proyectos</div>
+      <div class="dash-grid">
+        <div class="dash-stats">
+          <div class="stat-cards">
+            <div class="stat-card">
+              <div class="stat-num" id="stat-total">{total}</div>
+              <div class="stat-label">Total proyectos</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#2E75B6">
+              <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
+              <div class="stat-label">Proyectos de ley</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#5B4DA0">
+              <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
+              <div class="stat-label">Declaraciones</div>
+            </div>
+            <div class="stat-card" style="border-left-color:#1a7a4a">
+              <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
+              <div class="stat-label">Otros tipos</div>
+            </div>
+          </div>
         </div>
-        <div class="stat-card" style="border-left-color:#2E75B6">
-          <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
-          <div class="stat-label">Proyectos de ley</div>
-        </div>
-        <div class="stat-card" style="border-left-color:#5B4DA0">
-          <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
-          <div class="stat-label">Declaraciones</div>
-        </div>
-        <div class="stat-card" style="border-left-color:#1a7a4a">
-          <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
-          <div class="stat-label">Otros tipos</div>
-        </div>
-      </div>
-
-      <div class="dash-panels-row">
-        <div>
+        <div class="dash-tipos">
           <div class="dash-subtitle">Por tipo de proyecto</div>
           <div id="tipo-bars"></div>
         </div>
-        <div>
+        <div class="dash-bloques">
           <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
           <div id="bloque-bars"></div>
         </div>
-        <div>
+        <div class="dash-coms">
           <div class="dash-subtitle">Por comisiones (Top 10)</div>
           <div id="com-bars"></div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -613,16 +492,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </div>
       <div class="filters-body">
         <input class="search-box" type="text" id="search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="renderList()">
-
-        <hr class="sem-divider" id="sem-wrap" style="display:none">
-        <div id="sem-inner" style="display:none">
-          <div class="filter-label" style="margin-top:0">B&uacute;squeda sem&aacute;ntica ✨</div>
-          <div style="display:flex;gap:6px;margin-bottom:4px">
-            <input class="search-box" type="text" id="sem-search" placeholder="Ej: proyectos sobre educaci&oacute;n ambiental&hellip;" style="margin-bottom:0" onkeydown="if(event.key==='Enter')buscarSemantico()">
-            <button class="btn-sem" id="sem-btn" onclick="buscarSemantico()">Buscar</button>
-          </div>
-          <div class="sem-status" id="sem-status"></div>
-        </div>
 
         <div class="filter-label">Tipo</div>
         <div class="filter-row" id="tipo-filters"></div>
@@ -649,7 +518,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="filter-label">Rango de fechas</div>
         <div class="date-range">
           <input type="date" class="date-input" id="fecha-desde" onchange="renderList()">
-          <span class="date-sep">a</span>
+          <span class="date-sep">hasta</span>
           <input type="date" class="date-input" id="fecha-hasta" onchange="renderList()">
         </div>
 
@@ -667,6 +536,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <option value="">Todos los autores</option>
           </select>
           <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <hr class="sem-divider" id="sem-wrap" style="display:none;margin-top:14px">
+        <div id="sem-inner" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;margin-top:12px">
+            <span class="filter-label" style="margin:0">B&uacute;squeda sem&aacute;ntica</span>
+            <span style="font-size:9px;font-weight:700;background:#EDE8FA;color:#5B4DA0;padding:2px 7px;border-radius:10px;letter-spacing:.5px">BETA</span>
+          </div>
+          <div style="font-size:10px;color:#aaa;font-style:italic;margin-bottom:7px;line-height:1.4">Buscá por concepto, no por palabra exacta.</div>
+          <div style="display:flex;gap:6px;margin-bottom:4px">
+            <input class="search-box" type="text" id="sem-search" placeholder="Ej: proyectos sobre educaci&oacute;n ambiental&hellip;" style="margin-bottom:0" onkeydown="if(event.key==='Enter')buscarSemantico()">
+            <button class="btn-sem" id="sem-btn" onclick="buscarSemantico()">Buscar</button>
+          </div>
+          <div class="sem-status" id="sem-status"></div>
         </div>
       </div>
     </div>
@@ -692,15 +575,13 @@ init();
 </html>"""
 
 
-def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json"):
+def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
     proyectos = sorted(proyectos, key=lambda x: (x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
     tipos_count = {}
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
     datos_js = json.dumps(proyectos, ensure_ascii=False)
-    has_embeddings = os.path.exists(embeddings_path)
-    js_final = f"var HAS_EMBEDDINGS={'true' if has_embeddings else 'false'};\n" + JS
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,
@@ -710,16 +591,12 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
         otros  = total - tipos_count.get("PL", 0) - tipos_count.get("PD", 0),
         css    = CSS,
         datos  = datos_js,
-        js     = js_final,
+        js     = JS,
     )
     with open(archivo_salida, "w", encoding="utf-8") as f:
         f.write(html_final)
     print(f"Listo. Archivo generado: {archivo_salida}  ({len(html_final):,} bytes)")
     print(f"  → {total} proyectos  |  {tipos_count.get('PL',0)} PL  |  {tipos_count.get('PD',0)} PD")
-    if has_embeddings:
-        print(f"  → Búsqueda semántica habilitada ('{embeddings_path}' encontrado)")
-    else:
-        print(f"  → Búsqueda semántica deshabilitada ('{embeddings_path}' no encontrado)")
 
 
 if __name__ == "__main__":
