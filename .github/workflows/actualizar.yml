@@ -2,7 +2,8 @@ name: Actualizar Dashboard
 
 on:
   schedule:
-    - cron: '0 11 * * *'
+    - cron: '0 11 * * 1-5'   # 8:00 AM Argentina (lun-vie)
+    - cron: '0 21 * * 1-5'   # 6:00 PM Argentina (lun-vie)
   workflow_dispatch:
 
 jobs:
@@ -32,13 +33,20 @@ jobs:
           ARCHIVO_SALIDA: index.html
           ARCHIVO_HISTORICOS: trazabilidad.tsv
 
+      - name: Generar embeddings semánticos
+        run: python generar_embeddings.py
+        env:
+          ARCHIVO_HISTORICOS: trazabilidad.tsv
+          EMBEDDINGS_PATH: embeddings.json
+        continue-on-error: true   # Si falla el modelo, el deploy no se interrumpe
+
       - name: Commit y push si hubo cambios
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add index.html embeddings.json
           if git diff --staged --quiet; then
-            echo "Sin cambios en index.html"
+            echo "Sin cambios en index.html ni embeddings.json"
           else
             FECHA=$(TZ='America/Argentina/Buenos_Aires' date '+%d/%m/%Y %H:%M ART')
             git commit -m "dashboard: actualizacion automatica ${FECHA}"
