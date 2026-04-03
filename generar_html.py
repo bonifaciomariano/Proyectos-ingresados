@@ -52,18 +52,13 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .section-hint{font-size:10px;color:rgba(255,255,255,0.65)}
 .section-body{padding:16px}
 
-/* Dashboard PC: layout en grid */
-.dash-grid{display:grid;grid-template-columns:220px 1fr 1fr;grid-template-rows:auto auto;gap:16px}
-.dash-stats{grid-row:1/3}
-.dash-tipos{grid-row:1;grid-column:2}
-.dash-bloques{grid-row:1;grid-column:3}
-.dash-coms{grid-row:2;grid-column:2/4}
+/* Dashboard PC: fila de stats arriba + 3 columnas iguales abajo */
+.dash-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.dash-panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media(max-width:900px){
-  .dash-grid{display:block}
-  .dash-stats,.dash-tipos,.dash-bloques,.dash-coms{margin-bottom:12px}
+  .dash-stats-row{grid-template-columns:repeat(2,1fr)}
+  .dash-panels-row{grid-template-columns:1fr}
 }
-
-.stat-cards{display:flex;flex-direction:column;gap:8px}
 .stat-card{background:#F5F7FA;border-radius:8px;padding:14px 12px;border-left:4px solid #1B5EA2}
 .stat-num{font-size:28px;font-weight:700;color:#1B5EA2;line-height:1}
 .stat-label{font-size:11px;color:#4A4A4A;margin-top:3px}
@@ -93,7 +88,7 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 
 /* ── Detalle: layout dos columnas ───────────────────────────────────── */
 .detalle-layout{display:flex;gap:16px;padding:12px;align-items:flex-start}
-.filters-panel{width:280px;flex-shrink:0;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow:hidden;position:sticky;top:120px}
+.filters-panel{width:280px;flex-shrink:0;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow-y:auto;max-height:calc(100vh - 140px);position:sticky;top:120px}
 .filters-panel .section-header{border-radius:0}
 .filters-body{padding:14px}
 .results-panel{flex:1;min-width:0}
@@ -533,36 +528,34 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="section-body">
       <div id="dash-context" class="dash-context"></div>
-      <div class="dash-grid">
-        <div class="dash-stats">
-          <div class="stat-cards">
-            <div class="stat-card">
-              <div class="stat-num" id="stat-total">{total}</div>
-              <div class="stat-label">Total proyectos</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#2E75B6">
-              <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
-              <div class="stat-label">Proyectos de ley</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#5B4DA0">
-              <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
-              <div class="stat-label">Declaraciones</div>
-            </div>
-            <div class="stat-card" style="border-left-color:#1a7a4a">
-              <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
-              <div class="stat-label">Otros tipos</div>
-            </div>
-          </div>
+      <div class="dash-stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total">{total}</div>
+          <div class="stat-label">Total proyectos</div>
         </div>
-        <div class="dash-tipos">
+        <div class="stat-card" style="border-left-color:#2E75B6">
+          <div class="stat-num" style="color:#2E75B6" id="stat-pl">{pl}</div>
+          <div class="stat-label">Proyectos de ley</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#5B4DA0">
+          <div class="stat-num" style="color:#5B4DA0" id="stat-pd">{pd}</div>
+          <div class="stat-label">Declaraciones</div>
+        </div>
+        <div class="stat-card" style="border-left-color:#1a7a4a">
+          <div class="stat-num" style="color:#1a7a4a" id="stat-otros">{otros}</div>
+          <div class="stat-label">Otros tipos</div>
+        </div>
+      </div>
+      <div class="dash-panels-row">
+        <div>
           <div class="dash-subtitle">Por tipo de proyecto</div>
           <div id="tipo-bars"></div>
         </div>
-        <div class="dash-bloques">
+        <div>
           <div class="dash-subtitle">Por bloque pol&iacute;tico</div>
           <div id="bloque-bars"></div>
         </div>
-        <div class="dash-coms">
+        <div>
           <div class="dash-subtitle">Por comisiones (Top 10)</div>
           <div id="com-bars"></div>
         </div>

@@ -13,6 +13,8 @@ Variables de entorno opcionales:
 """
 
 import csv
+import io
+import json
 import logging
 import os
 import re
@@ -26,6 +28,12 @@ try:
 except ImportError:
     print("ERROR: faltan dependencias. Ejecutá: pip install -r requirements.txt")
     sys.exit(1)
+
+try:
+    import pdfplumber
+    _PDFPLUMBER_OK = True
+except ImportError:
+    _PDFPLUMBER_OK = False
 
 # ─────────────────────────────── Configuración ────────────────────────────────
 
@@ -433,8 +441,31 @@ def buscar_por_fechas(session, fecha_desde, fecha_hasta):
 
 # ─────────────────────────────── Scraping: detalle ───────────────────────────
 
+def extraer_texto_pdf(session, pdf_url):
+    """Descarga un PDF en memoria y devuelve los primeros 1500 caracteres de texto.
+    Retorna string vacío si falla o si el PDF es una imagen escaneada."""
+    if not _PDFPLUMBER_OK:
+        return ""
+    try:
+        resp = session.get(pdf_url, timeout=45)
+        resp.raise_for_status()
+        texto_partes = []
+        with pdfplumber.open(io.BytesIO(resp.content)) as pdf:
+            for page in pdf.pages:
+                t = page.extract_text()
+                if t:
+                    texto_partes.append(t)
+                if sum(len(p) for p in texto_partes) >= 1500:
+                    break
+        texto = " ".join(texto_partes)
+        return texto[:1500].strip()
+    except Exception as exc:
+        log.debug(f"    PDF no disponible ({pdf_url}): {exc}")
+        return ""
+
+
 def obtener_detalle(session, url):
-    resultado = {"autores_raw": [], "comisiones": [], "dae": ""}
+    resultado = {"autores_raw": [], "comisiones": [], "dae": "", "texto_pdf": ""}
     try:
         resp = session.get(url, timeout=30)
         resp.raise_for_status()
@@ -465,6 +496,12 @@ def obtener_detalle(session, url):
             dae_match2 = re.search(r"(\d+/\d{4})\s*Tipo:", texto_completo)
             if dae_match2:
                 resultado["dae"] = dae_match2.group(1)
+
+        pdf_link = soup.find("a", href=re.compile(r"/downloadPdf", re.I))
+        if pdf_link:
+            pdf_href = pdf_link["href"]
+            pdf_url = pdf_href if pdf_href.startswith("http") else f"https://www.senado.gob.ar{pdf_href}"
+            resultado["texto_pdf"] = extraer_texto_pdf(session, pdf_url)
 
     except Exception as exc:
         log.warning(f"    Error en detalle {url}: {exc}")
@@ -548,9 +585,37 @@ def main():
             "dae":        detalle.get("dae", ""),
             "origen":     exp["origen"],
             "url":        exp["url"],
+            "texto_pdf":  detalle.get("texto_pdf", ""),
         })
 
     log.info(f"  → {len(frescos)} proyectos frescos")
+
+    # 5b. Escribir textos_temp.json con los proyectos frescos que tienen texto PDF
+    #     y que aún no tienen embedding (para que generar_embeddings.py los use)
+    embeddings_path = os.getenv("EMBEDDINGS_PATH", "embeddings.json")
+    embeddings_existentes = set()
+    if os.path.exists(embeddings_path):
+        try:
+            with open(embeddings_path, "r", encoding="utf-8") as f:
+                embeddings_existentes = set(json.load(f).keys())
+        except Exception:
+            pass
+
+    textos_temp = {}
+    for p in frescos:
+        if not p.get("texto_pdf"):
+            continue
+        key = f"{p['nro']}-{p['anio']}-{p['tipo']}"
+        if key not in embeddings_existentes:
+            textos_temp[key] = p["texto_pdf"]
+
+    if textos_temp:
+        try:
+            with open("textos_temp.json", "w", encoding="utf-8") as f:
+                json.dump(textos_temp, f, ensure_ascii=False)
+            log.info(f"  → textos_temp.json escrito con {len(textos_temp)} texto(s) PDF")
+        except Exception as exc:
+            log.warning(f"  No se pudo escribir textos_temp.json: {exc}")
 
     # 6. Combinar: frescos + históricos (sin duplicados)
     vistos = set()

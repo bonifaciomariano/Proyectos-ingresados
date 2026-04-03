@@ -99,8 +99,14 @@ def leer_proyectos_tsv(tsv_path):
 
 # ─────────────────────────────── Texto a embeddear ───────────────────────────
 
-def construir_texto(p):
-    """Concatena los campos de un proyecto en un único string para embeddear."""
+def construir_texto(p, textos_pdf=None):
+    """Devuelve el texto a embeddear para un proyecto.
+    Si hay texto PDF disponible (textos_pdf[key]), lo usa.
+    De lo contrario usa extracto + metadatos como fallback."""
+    if textos_pdf:
+        texto_pdf = textos_pdf.get(p["key"], "")
+        if texto_pdf:
+            return texto_pdf
     partes = [p["extracto"]]
     if p["autores"]:
         partes.append(" ".join(p["autores"]))
@@ -111,6 +117,18 @@ def construir_texto(p):
     if p["tipo_label"]:
         partes.append(p["tipo_label"])
     return " ".join(filter(None, partes))
+
+
+# ─────────────────────────────── Helpers ─────────────────────────────────────
+
+def _limpiar_textos_temp(path):
+    """Borra textos_temp.json si existe (no deja rastro en el repo)."""
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            log.info(f"  → {path} eliminado")
+    except Exception as exc:
+        log.warning(f"  No se pudo eliminar {path}: {exc}")
 
 
 # ─────────────────────────────── Main ────────────────────────────────────────
@@ -136,15 +154,27 @@ def main():
             log.warning(f"  No se pudo leer '{EMBEDDINGS_PATH}': {exc}. Se recalculará todo.")
             embeddings_existentes = {}
 
-    # 3. Determinar proyectos nuevos
+    # 3. Cargar textos PDF temporales (escritos por el scraper, si existen)
+    TEXTOS_TEMP_PATH = "textos_temp.json"
+    textos_pdf = {}
+    if os.path.exists(TEXTOS_TEMP_PATH):
+        try:
+            with open(TEXTOS_TEMP_PATH, "r", encoding="utf-8") as f:
+                textos_pdf = json.load(f)
+            log.info(f"  → {len(textos_pdf)} texto(s) PDF cargados de textos_temp.json")
+        except Exception as exc:
+            log.warning(f"  No se pudo leer textos_temp.json: {exc}")
+
+    # 4. Determinar proyectos nuevos
     nuevos = [p for p in proyectos if p["key"] not in embeddings_existentes]
     log.info(f"  → {len(nuevos)} proyectos nuevos sin embedding")
 
     if not nuevos:
         log.info("Nada nuevo. Saliendo sin modificar embeddings.json.")
+        _limpiar_textos_temp(TEXTOS_TEMP_PATH)
         return
 
-    # 4. Cargar modelo (fastembed usa ONNX runtime, sin PyTorch)
+    # 5. Cargar modelo (fastembed usa ONNX runtime, sin PyTorch)
     try:
         from fastembed import TextEmbedding
     except ImportError:
@@ -159,12 +189,14 @@ def main():
         log.info("Saliendo sin modificar embeddings.json.")
         return
 
-    # 5. Generar embeddings
+    # 6. Generar embeddings
     # fastembed.embed() genera embeddings simétricos para paraphrase models
     # (compatible con Xenova/paraphrase-multilingual-MiniLM-L12-v2 en Transformers.js)
-    textos = [construir_texto(p) for p in nuevos]
+    textos = [construir_texto(p, textos_pdf) for p in nuevos]
     keys   = [p["key"] for p in nuevos]
 
+    con_pdf = sum(1 for p in nuevos if textos_pdf.get(p["key"]))
+    log.info(f"  → {con_pdf}/{len(nuevos)} proyectos con texto PDF completo")
     log.info(f"Generando embeddings para {len(nuevos)} proyectos...")
     try:
         vectores = list(model.embed(textos))
@@ -188,6 +220,7 @@ def main():
         log.error(f"Error guardando '{EMBEDDINGS_PATH}': {exc}")
         return
 
+    _limpiar_textos_temp(TEXTOS_TEMP_PATH)
     log.info("Generador de embeddings finalizado con éxito.")
     log.info("=" * 60)
 
