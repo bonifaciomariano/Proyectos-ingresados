@@ -1,4 +1,4 @@
-    #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 generar_embeddings.py — Genera embeddings semánticos para proyectos legislativos
 =================================================================================

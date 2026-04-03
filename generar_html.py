@@ -13,7 +13,7 @@ ARCHIVO_SALIDA   = "index.html"
 
 # -----------------------------------------------------------------------------
 
-import json, sys
+import json, os, sys
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -139,6 +139,15 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .ctag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;margin-right:4px;margin-bottom:3px;background:#EAF0FA;color:#1B5EA2;border:1px solid #c8daf0}
 .no-results{text-align:center;padding:48px 16px;color:#aaa;font-size:14px}
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
+
+/* ── Búsqueda semántica ─────────────────────────────────────── */
+.btn-sem{padding:10px 12px;border-radius:8px;border:1.5px solid #1B5EA2;background:#1B5EA2;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.btn-sem:hover:not(:disabled){background:#0d3f73;border-color:#0d3f73}
+.btn-sem:disabled{opacity:0.5;cursor:not-allowed}
+.sem-status{font-size:11px;color:#888;margin-top:3px;min-height:16px}
+.sem-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#E8F4E8;color:#1a7a4a;border:1px solid #b8e0b8;flex-shrink:0;align-self:center}
+.sem-banner{background:#EAF9EA;border:1px solid #b8e0b8;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#1a7a4a;flex-wrap:wrap;gap:6px}
+.sem-divider{border:none;border-top:1.5px solid #D6E4F0;margin:10px 0}
 """
 
 JS = r"""
@@ -149,6 +158,7 @@ var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#
 var ALL_BLOQUES=[];
 var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='',activeAnio='';
+var semActivo=false,semResultados=[],EMBEDDINGS=null,semPipeline=null;
 
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
@@ -187,6 +197,11 @@ function init(){
   Object.keys(provSet).sort().forEach(function(pv){
     var o=document.createElement('option');o.value=pv;o.textContent=pv;provSel.appendChild(o);
   });
+
+  if(typeof HAS_EMBEDDINGS!=='undefined'&&HAS_EMBEDDINGS){
+    var sw=document.getElementById('sem-wrap');if(sw)sw.style.display='';
+    var si=document.getElementById('sem-inner');if(si)si.style.display='';
+  }
 
   renderDash(DATA);
   renderFilters();
@@ -355,7 +370,34 @@ function getFiltered(){
     return true;
   });
 }
+function buildCard(p, extraBadge){
+  var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
+  var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
+  var btags='',ctags='';
+  p.bloques.forEach(function(b){
+    var c=getBloqueColor(b);
+    btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
+  });
+  p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
+  var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
+  var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
+  var extra=extraBadge||'';
+  return '<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+extra+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
+}
+
 function renderList(){
+  if(semActivo){
+    var tot=semResultados.length;
+    document.getElementById('results-count').innerHTML='<span style="color:#1a7a4a;font-weight:600">'+tot+' resultado'+(tot!==1?'s':'')+' sem\u00e1ntico'+(tot!==1?'s':'')+'</span>';
+    var html='<div class="sem-banner"><span>Resultados por similitud sem\u00e1ntica</span><button onclick="limpiarSemantico()" style="background:none;border:1px solid #1a7a4a;color:#1a7a4a;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;font-weight:600">Limpiar</button></div>';
+    semResultados.forEach(function(r){
+      var pct=Math.round(r.score*100);
+      var badge='<span class="sem-badge">'+pct+'%</span>';
+      html+=buildCard(r.proyecto,badge);
+    });
+    document.getElementById('list').innerHTML=html;
+    return;
+  }
   var filtered=getFiltered();
   var tot=filtered.length;
   document.getElementById('results-count').innerHTML=tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
@@ -364,19 +406,7 @@ function renderList(){
     return;
   }
   var html='';
-  filtered.forEach(function(p){
-    var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
-    var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
-    var btags='',ctags='';
-    p.bloques.forEach(function(b){
-      var c=getBloqueColor(b);
-      btags+='<span class="btag" style="background:'+c+'22;color:'+c+'">'+b+'</span>';
-    });
-    p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
-    var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
-    var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
-    html+='<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(btags?'<div class="meta-row">'+btags+'</div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
-  });
+  filtered.forEach(function(p){html+=buildCard(p)});
   document.getElementById('list').innerHTML=html;
 }
 
@@ -416,6 +446,55 @@ function exportarExcel(){
   ws['!cols']=[{wch:6},{wch:10},{wch:8},{wch:12},{wch:28},{wch:35},{wch:35},{wch:60},{wch:30},{wch:30},{wch:30}];
   XLSX.utils.book_append_sheet(wb,ws,'Proyectos');
   XLSX.writeFile(wb,'proyectos_filtrados.xlsx');
+}
+
+/* ── Búsqueda semántica ───────────────────────────────────── */
+function cosineSim(a,b){var d=0,na=0,nb=0;for(var i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return d/(Math.sqrt(na)*Math.sqrt(nb)+1e-10)}
+async function cargarEmbeddings(){
+  if(EMBEDDINGS)return;
+  var r=await fetch('embeddings.json');
+  EMBEDDINGS=await r.json();
+}
+async function cargarPipeline(){
+  if(semPipeline)return;
+  var mod=await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
+  mod.env.allowLocalModels=false;
+  semPipeline=await mod.pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2');
+}
+async function buscarSemantico(){
+  var q=document.getElementById('sem-search').value.trim();
+  if(!q)return;
+  var btnEl=document.getElementById('sem-btn');
+  var statusEl=document.getElementById('sem-status');
+  btnEl.disabled=true;
+  try{
+    statusEl.textContent='Cargando modelo\u2026 (primera vez ~30s)';
+    await cargarEmbeddings();
+    await cargarPipeline();
+    statusEl.textContent='Calculando similitud\u2026';
+    var out=await semPipeline(q,{pooling:'mean',normalize:true});
+    var qv=Array.from(out.data);
+    var scores=[];
+    for(var k in EMBEDDINGS)scores.push({key:k,score:cosineSim(qv,EMBEDDINGS[k])});
+    scores.sort(function(a,b){return b.score-a.score;});
+    var keyMap={};
+    DATA.forEach(function(p){keyMap[p.nro+'-'+p.anio+'-'+p.tipo]=p;});
+    semResultados=scores.slice(0,20).map(function(s){return{proyecto:keyMap[s.key],score:s.score};}).filter(function(s){return s.proyecto;});
+    semActivo=true;
+    statusEl.textContent=semResultados.length+' resultado'+(semResultados.length!==1?'s':'');
+    renderList();
+  }catch(e){
+    statusEl.textContent='Error: '+e.message;
+    console.error(e);
+  }finally{
+    btnEl.disabled=false;
+  }
+}
+function limpiarSemantico(){
+  semActivo=false;semResultados=[];
+  document.getElementById('sem-search').value='';
+  document.getElementById('sem-status').textContent='';
+  renderList();
 }
 """
 
@@ -599,7 +678,7 @@ def parse_fecha_sort(fecha_str):
         return f"{parts[2]}{parts[1]}{parts[0]}"
     return "00000000"
 
-def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html"):
+def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json"):
     # Ordena por fecha exacta, luego por año y finalmente por número de expediente (más nuevo a más viejo)
     proyectos = sorted(proyectos, key=lambda x: (parse_fecha_sort(x.get("fecha", "")), x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
@@ -607,6 +686,8 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
     datos_js = json.dumps(proyectos, ensure_ascii=False)
+    has_embeddings = os.path.exists(embeddings_path)
+    js_final = f"var HAS_EMBEDDINGS={'true' if has_embeddings else 'false'};\n" + JS
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,
@@ -616,7 +697,7 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
         otros  = total - tipos_count.get("PL", 0) - tipos_count.get("PD", 0),
         css    = CSS,
         datos  = datos_js,
-        js     = JS,
+        js     = js_final,
     )
     with open(archivo_salida, "w", encoding="utf-8") as f:
         f.write(html_final)
