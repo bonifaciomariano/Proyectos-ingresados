@@ -135,7 +135,7 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .no-results{text-align:center;padding:48px 16px;color:#aaa;font-size:14px}
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
 
-/* ── Búsqueda semántica ─────────────────────────────────────── */
+/* SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
 .btn-sem{padding:10px 12px;border-radius:8px;border:1.5px solid #1B5EA2;background:#1B5EA2;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
 .btn-sem:hover:not(:disabled){background:#0d3f73;border-color:#0d3f73}
 .btn-sem:disabled{opacity:0.5;cursor:not-allowed}
@@ -143,6 +143,7 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .sem-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#E8F4E8;color:#1a7a4a;border:1px solid #b8e0b8;flex-shrink:0;align-self:center}
 .sem-banner{background:#EAF9EA;border:1px solid #b8e0b8;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#1a7a4a;flex-wrap:wrap;gap:6px}
 .sem-divider{border:none;border-top:1.5px solid #D6E4F0;margin:10px 0}
+*/
 """
 
 JS = r"""
@@ -151,7 +152,7 @@ var TIPO_FG={PL:'#1B5EA2',PD:'#2E75B6',PC:'#0d7a4a',PR:'#5B4DA0',CA:'#1a7a4a',AC
 var TIPO_BG={PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC:'#F9F0DA',CV:'#FAE0EA'};
 var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
 var ALL_BLOQUES=[];
-var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
+var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='',dashActiveAnio='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='',activeAnio='';
 var semActivo=false,semResultados=[],EMBEDDINGS=null,semPipeline=null;
 
@@ -167,11 +168,19 @@ function init(){
   DATA.forEach(function(p){p.bloques.forEach(function(b){if(b)bset[b]=1})});
   ALL_BLOQUES=Object.keys(bset).sort();
 
-  var cset={};
-  DATA.forEach(function(p){p.comisiones.forEach(function(c){cset[c]=1})});
-  var cSel=document.getElementById('com-select');
-  Object.keys(cset).sort().forEach(function(c){
-    var o=document.createElement('option');o.value=c;o.textContent=c;cSel.appendChild(o);
+  var cset1={},csetAdic={};
+  DATA.forEach(function(p){
+    if(p.comisiones[0])cset1[p.comisiones[0]]=1;
+    if(p.comisiones[1])csetAdic[p.comisiones[1]]=1;
+    if(p.comisiones[2])csetAdic[p.comisiones[2]]=1;
+  });
+  var cSel1=document.getElementById('com-select-1');
+  Object.keys(cset1).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cSel1.appendChild(o);
+  });
+  var cSelAdic=document.getElementById('com-select-adic');
+  Object.keys(csetAdic).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cSelAdic.appendChild(o);
   });
 
   var aset={};
@@ -193,10 +202,7 @@ function init(){
     var o=document.createElement('option');o.value=pv;o.textContent=pv;provSel.appendChild(o);
   });
 
-  if(typeof HAS_EMBEDDINGS!=='undefined'&&HAS_EMBEDDINGS){
-    var sw=document.getElementById('sem-wrap');if(sw)sw.style.display='';
-    var si=document.getElementById('sem-inner');if(si)si.style.display='';
-  }
+  /* SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome */
 
   renderDash(DATA);
   renderFilters();
@@ -208,6 +214,7 @@ function getBloqueColor(b){return BC[ALL_BLOQUES.indexOf(b)%BC.length]}
 /* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
+    if(dashActiveAnio&&String(p.anio)!==dashActiveAnio)return false;
     if(dashFiltroTipo&&p.tipo!==dashFiltroTipo)return false;
     if(dashFiltroBloque&&p.bloques.indexOf(dashFiltroBloque)<0)return false;
     if(dashFiltroCom&&p.comisiones.indexOf(dashFiltroCom)<0)return false;
@@ -231,6 +238,7 @@ function renderDash(data){
   document.getElementById('stat-otros').innerHTML=total-(s.tipos['PL']||0)-(s.tipos['PD']||0);
 
   var partes=[];
+  if(dashActiveAnio)partes.push('A\u00f1o: '+dashActiveAnio);
   if(dashFiltroTipo)partes.push('Tipo: '+(TIPOS[dashFiltroTipo]||dashFiltroTipo));
   if(dashFiltroBloque)partes.push('Bloque: '+dashFiltroBloque);
   if(dashFiltroCom)partes.push('Comisi\u00f3n: '+dashFiltroCom);
@@ -277,7 +285,15 @@ function renderDash(data){
 function clickDashTipo(t){dashFiltroTipo=dashFiltroTipo===t?'':t;renderDash(getDashFiltered())}
 function clickDashBloque(b){dashFiltroBloque=dashFiltroBloque===b?'':b;renderDash(getDashFiltered())}
 function clickDashCom(c){dashFiltroCom=dashFiltroCom===c?'':c;renderDash(getDashFiltered())}
-function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(DATA)}
+function setDashAnio(anio){
+  dashActiveAnio=anio;
+  ['all','2025','2026'].forEach(function(a){
+    var el=document.getElementById('dash-anio-'+(a==='all'?'all':a));
+    if(el)el.className='chip'+(anio===(a==='all'?'':a)?' on':'');
+  });
+  renderDash(getDashFiltered());
+}
+function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(getDashFiltered())}
 
 /* ── Filtros ───────────────────────────────────────────────────── */
 function renderFilters(){
@@ -336,7 +352,8 @@ function parseFecha(s){
 /* ── Lista ─────────────────────────────────────────────────────── */
 function getFiltered(){
   var q=document.getElementById('search').value.toLowerCase().trim();
-  var selCom=document.getElementById('com-select').value;
+  var selCom1=document.getElementById('com-select-1').value;
+  var selComAdic=document.getElementById('com-select-adic').value;
   var selAutor=document.getElementById('autor-select').value;
   var dDesde=document.getElementById('fecha-desde').value;
   var dHasta=document.getElementById('fecha-hasta').value;
@@ -349,7 +366,8 @@ function getFiltered(){
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
     if(activeProvincia&&(!p.provincias||p.provincias.indexOf(activeProvincia)<0))return false;
-    if(selCom&&p.comisiones.indexOf(selCom)<0)return false;
+    if(selCom1&&p.comisiones[0]!==selCom1)return false;
+    if(selComAdic&&p.comisiones.slice(1).indexOf(selComAdic)<0)return false;
     if(selAutor&&p.autores.indexOf(selAutor)<0)return false;
     if(fDesde||fHasta){
       var fp=parseFecha(p.fecha);
@@ -528,6 +546,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="section-body">
       <div id="dash-context" class="dash-context"></div>
+      <div class="filter-row" style="margin-bottom:12px">
+        <button class="chip on" id="dash-anio-all" onclick="setDashAnio('')">Todos</button>
+        <button class="chip" id="dash-anio-2025" onclick="setDashAnio('2025')">2025</button>
+        <button class="chip" id="dash-anio-2026" onclick="setDashAnio('2026')">2026</button>
+      </div>
       <div class="dash-stats-row">
         <div class="stat-card">
           <div class="stat-num" id="stat-total">{total}</div>
@@ -610,10 +633,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <input type="date" class="date-input" id="fecha-hasta" onchange="renderList()">
         </div>
 
-        <div class="filter-label">Comisi&oacute;n</div>
+        <div class="filter-label">Comisi&oacute;n (1er giro)</div>
         <div class="select-wrapper">
-          <select class="filter-select" id="com-select" onchange="renderList()">
+          <select class="filter-select" id="com-select-1" onchange="renderList()">
             <option value="">Todas las comisiones</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="filter-label">Comisi&oacute;n (giros adicionales)</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="com-select-adic" onchange="renderList()">
+            <option value="">Todos los giros adicionales</option>
           </select>
           <span class="select-arrow">&#9660;</span>
         </div>
@@ -626,6 +657,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <span class="select-arrow">&#9660;</span>
         </div>
 
+        <!-- SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
         <hr class="sem-divider" id="sem-wrap" style="display:none;margin-top:14px">
         <div id="sem-inner" style="display:none">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;margin-top:12px">
@@ -639,6 +671,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
           <div class="sem-status" id="sem-status"></div>
         </div>
+        -->
       </div>
     </div>
 
@@ -679,8 +712,8 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
     datos_js = json.dumps(proyectos, ensure_ascii=False)
-    has_embeddings = os.path.exists(embeddings_path)
-    js_final = f"var HAS_EMBEDDINGS={'true' if has_embeddings else 'false'};\n" + JS
+    # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
+    js_final = "var HAS_EMBEDDINGS=false;\n" + JS
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,
