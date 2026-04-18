@@ -50,6 +50,14 @@ URL_SENADORES_BLOQUE = f"{BASE_URL}/senadores/listados/agrupados-por-bloques"
 
 TIPOS_INCLUIR = {"PL", "PD", "PC", "PR", "CA", "AC", "CV"}
 
+# Texto que aparece en la página de detalle cuando el expediente ya no está pendiente
+ESTADOS_DESCARTAR = frozenset([
+    "SANCION DE LEY",        # Sancionado por ambas cámaras (aparece como sección azul)
+    "EL EXPEDIENTE CADUCO",  # Caducado (párrafo azul en la página)
+    "ENVIADO AL ARCHIVO",    # Archivado (párrafo azul en la página)
+    "VUELVE A DIP",          # Aprobado por Senado y enviado a Diputados (NOTA: campo)
+])
+
 TIPOS = {
     "PL": "Proyecto de Ley",
     "PD": "Proyecto de Declaración",
@@ -177,6 +185,71 @@ def clasificar_autores(extracto, autores_detalle):
 def construir_url_expediente(nro, anio, origen, tipo):
     anio_short = str(anio)[-2:]
     return f"{BASE_URL}/parlamentario/comisiones/verExp/{nro}.{anio_short}/{origen}/{tipo}"
+
+
+def reescribir_tsv_sin_claves(tsv_path, claves_descartar):
+    """Elimina del TSV las filas cuya (NRO, ANIO, TIPO) esté en claves_descartar."""
+    if not claves_descartar or not os.path.exists(tsv_path):
+        return
+    with open(tsv_path, "r", encoding="utf-8") as f:
+        contenido = f.read()
+    reader = csv.DictReader(io.StringIO(contenido), delimiter="\t")
+    fieldnames = reader.fieldnames
+    filas = list(reader)
+    nuevas, removidos = [], 0
+    for fila in filas:
+        try:
+            key = (int(fila["NRO"]), int(fila["ANIO"]), fila["TIPO"].strip())
+        except (KeyError, ValueError):
+            nuevas.append(fila)
+            continue
+        if key in claves_descartar:
+            removidos += 1
+            log.info(f"  TSV: eliminando {fila.get('TIPO')} {fila.get('NRO')}/{fila.get('ANIO')} (sancionado/archivado)")
+        else:
+            nuevas.append(fila)
+    if removidos:
+        with open(tsv_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter="\t")
+            writer.writeheader()
+            writer.writerows(nuevas)
+        log.info(f"  → TSV: {removidos} fila(s) eliminada(s), {len(nuevas)} mantenidas")
+
+
+def cargar_historico_simple(tsv_path):
+    """Carga proyectos del TSV histórico (2010-2024) sin resolver bloques/provincias."""
+    proyectos = []
+    if not os.path.exists(tsv_path):
+        return proyectos
+    with open(tsv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            nro_str = (row.get("NRO") or "").strip()
+            if not nro_str:
+                continue
+            nro    = int(nro_str)
+            anio   = int(row.get("ANIO", "2020").strip() or "2020")
+            tipo   = (row.get("TIPO") or "PL").strip()
+            origen = (row.get("ORIGEN") or "S").strip()
+            caratula = (row.get("CARATULA") or "").strip()
+            extracto = caratula[caratula.index(":") + 1:].strip() if ":" in caratula else caratula
+            mesa_raw = (row.get("MESA") or "").strip()
+            fecha = ""
+            fm = re.search(r"(\d{2}/\d{2}/\d{4})", mesa_raw)
+            if fm:
+                fecha = fm.group(1)
+            autor_raw = (row.get("AUTOR") or "").strip()
+            autores = [a.strip().rstrip("-").strip() for a in autor_raw.split(" - ") if a.strip().rstrip("-").strip()] if autor_raw else []
+            comisiones = [(row.get(f"COM{i}") or "").strip() for i in range(1, 6) if (row.get(f"COM{i}") or "").strip()]
+            proyectos.append({
+                "nro": nro, "anio": anio, "tipo": tipo,
+                "tipo_label": TIPOS.get(tipo, tipo),
+                "extracto": extracto, "autores": autores, "coautores": [],
+                "bloques": [], "provincias": [], "comisiones": comisiones,
+                "fecha": fecha, "dae": "", "origen": origen,
+                "url": construir_url_expediente(nro, anio, origen, tipo),
+            })
+    return proyectos
 
 
 # ─────────────────────────────── Senadores (web) ─────────────────────────────
@@ -465,7 +538,7 @@ def extraer_texto_pdf(session, pdf_url):
 
 
 def obtener_detalle(session, url):
-    resultado = {"autores_raw": [], "comisiones": [], "dae": "", "texto_pdf": ""}
+    resultado = {"autores_raw": [], "comisiones": [], "dae": "", "texto_pdf": "", "descartar": False}
     try:
         resp = session.get(url, timeout=30)
         resp.raise_for_status()
@@ -502,6 +575,13 @@ def obtener_detalle(session, url):
             pdf_href = pdf_link["href"]
             pdf_url = pdf_href if pdf_href.startswith("http") else f"https://www.senado.gob.ar{pdf_href}"
             resultado["texto_pdf"] = extraer_texto_pdf(session, pdf_url)
+
+        texto_upper = soup.get_text(" ", strip=True).upper()
+        for estado in ESTADOS_DESCARTAR:
+            if estado in texto_upper:
+                resultado["descartar"] = True
+                log.info(f"    → DESCARTADO: estado '{estado}' detectado")
+                break
 
     except Exception as exc:
         log.warning(f"    Error en detalle {url}: {exc}")
@@ -554,12 +634,17 @@ def main():
 
     # 5. Enriquecer cada expediente fresco con datos del detalle
     frescos = []
+    claves_descartar = set()  # Expedientes detectados como sancionados/archivados/caducados
     total = len(expedientes)
 
     for i, exp in enumerate(expedientes, 1):
         log.info(f"  [{i:>3}/{total}] {exp['tipo']} {exp['nro']}/{exp['anio']}")
         time.sleep(PAUSA_ENTRE_REQUESTS)
         detalle = obtener_detalle(session, exp["url"]) if exp["url"] else {}
+
+        if detalle.get("descartar"):
+            claves_descartar.add((exp["nro"], exp["anio"], exp["tipo"]))
+            continue
 
         autores_raw   = detalle.get("autores_raw", [])
         autores_norm  = [normalizar_autor(a) for a in autores_raw if a.strip()]
@@ -588,7 +673,11 @@ def main():
             "texto_pdf":  detalle.get("texto_pdf", ""),
         })
 
-    log.info(f"  → {len(frescos)} proyectos frescos")
+    log.info(f"  → {len(frescos)} proyectos frescos ({len(claves_descartar)} descartados)")
+
+    # Eliminar del TSV los expedientes sancionados/archivados detectados en esta corrida
+    if claves_descartar:
+        reescribir_tsv_sin_claves(ARCHIVO_HISTORICOS, claves_descartar)
 
     # 5b. Escribir textos_temp.json con los proyectos frescos que tienen texto PDF
     #     y que aún no tienen embedding (para que generar_embeddings.py los use)
@@ -629,7 +718,7 @@ def main():
 
     for p in historicos:
         key = (p["nro"], p["anio"], p["tipo"])
-        if key not in vistos:
+        if key not in vistos and key not in claves_descartar:
             vistos.add(key)
             proyectos.append(p)
 
@@ -642,13 +731,19 @@ def main():
         log.warning("No hay proyectos. Saliendo sin generar HTML.")
         sys.exit(0)
 
+    # 6b. Cargar proyectos históricos 2010-2024 para pestaña Histórico
+    archivo_hist_tsv = os.getenv("ARCHIVO_HIST_TSV", "trazabilidad_historico.tsv")
+    proyectos_hist = cargar_historico_simple(archivo_hist_tsv)
+    log.info(f"  → {len(proyectos_hist)} proyectos históricos (2010-2024) para pestaña Histórico")
+
     # 7. Generar dashboard HTML
     titulo = f"Actualizado {hoy.strftime('%d/%m/%Y')}"
     fecha_datos = hoy.strftime("%d/%m/%Y")
 
     try:
         from generar_html import generar_desde_lista
-        generar_desde_lista(proyectos, titulo, fecha_datos, ARCHIVO_SALIDA)
+        generar_desde_lista(proyectos, titulo, fecha_datos, ARCHIVO_SALIDA,
+                            proyectos_hist=proyectos_hist)
         log.info(f"  → Dashboard generado: {ARCHIVO_SALIDA}")
     except Exception as exc:
         log.error(f"Error generando HTML: {exc}")
