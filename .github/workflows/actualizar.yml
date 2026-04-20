@@ -33,7 +33,7 @@ jobs:
           ARCHIVO_SALIDA: index.html
           ARCHIVO_HISTORICOS: trazabilidad.tsv
 
-      - name: Scraping hist\u00f3rico (2010-2024)
+      - name: Scraping histórico (2010-2024)
         run: python scraper_historico.py
         env:
           ARCHIVO_HIST_TSV: trazabilidad_historico.tsv
@@ -42,7 +42,7 @@ jobs:
         continue-on-error: true
 
       # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
-      - name: Generar embeddings sem\u00e1nticos
+      - name: Generar embeddings semánticos
         if: false
         run: python generar_embeddings.py
         env:
