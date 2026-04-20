@@ -135,7 +135,7 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .no-results{text-align:center;padding:48px 16px;color:#aaa;font-size:14px}
 .footer{text-align:center;padding:20px 16px;font-size:11px;color:#aaa;font-style:italic}
 
-/* ── Búsqueda semántica ─────────────────────────────────────── */
+/* SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
 .btn-sem{padding:10px 12px;border-radius:8px;border:1.5px solid #1B5EA2;background:#1B5EA2;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
 .btn-sem:hover:not(:disabled){background:#0d3f73;border-color:#0d3f73}
 .btn-sem:disabled{opacity:0.5;cursor:not-allowed}
@@ -143,6 +143,7 @@ body{font-family:'Poppins',Calibri,sans-serif;background:#E8EEF5;color:#4A4A4A;f
 .sem-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#E8F4E8;color:#1a7a4a;border:1px solid #b8e0b8;flex-shrink:0;align-self:center}
 .sem-banner{background:#EAF9EA;border:1px solid #b8e0b8;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#1a7a4a;flex-wrap:wrap;gap:6px}
 .sem-divider{border:none;border-top:1.5px solid #D6E4F0;margin:10px 0}
+*/
 """
 
 JS = r"""
@@ -151,15 +152,17 @@ var TIPO_FG={PL:'#1B5EA2',PD:'#2E75B6',PC:'#0d7a4a',PR:'#5B4DA0',CA:'#1a7a4a',AC
 var TIPO_BG={PL:'#D6E4F0',PD:'#EAF0FA',PC:'#DCF0E8',PR:'#EDE8FA',CA:'#E0F4EC',AC:'#F9F0DA',CV:'#FAE0EA'};
 var BC=['#1B5EA2','#2E75B6','#5B4DA0','#1a7a4a','#7a5c1a','#7a1a3a','#2E8B7A','#6B3A2A','#1a4a7a','#4a7a1a','#7a1a5a','#2a7a6a','#5a2a7a','#2a5a2a'];
 var ALL_BLOQUES=[];
-var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='';
+var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='',dashActiveAnio='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='',activeAnio='';
 var semActivo=false,semResultados=[],EMBEDDINGS=null,semPipeline=null;
 
+var histInited=false;
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelector('[data-tab="'+id+'"]').classList.add('active');
+  if(id==='historico'&&!histInited){histInited=true;initHist();}
 }
 
 function init(){
@@ -167,11 +170,19 @@ function init(){
   DATA.forEach(function(p){p.bloques.forEach(function(b){if(b)bset[b]=1})});
   ALL_BLOQUES=Object.keys(bset).sort();
 
-  var cset={};
-  DATA.forEach(function(p){p.comisiones.forEach(function(c){cset[c]=1})});
-  var cSel=document.getElementById('com-select');
-  Object.keys(cset).sort().forEach(function(c){
-    var o=document.createElement('option');o.value=c;o.textContent=c;cSel.appendChild(o);
+  var cset1={},csetAdic={};
+  DATA.forEach(function(p){
+    if(p.comisiones[0])cset1[p.comisiones[0]]=1;
+    if(p.comisiones[1])csetAdic[p.comisiones[1]]=1;
+    if(p.comisiones[2])csetAdic[p.comisiones[2]]=1;
+  });
+  var cSel1=document.getElementById('com-select-1');
+  Object.keys(cset1).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cSel1.appendChild(o);
+  });
+  var cSelAdic=document.getElementById('com-select-adic');
+  Object.keys(csetAdic).sort().forEach(function(c){
+    var o=document.createElement('option');o.value=c;o.textContent=c;cSelAdic.appendChild(o);
   });
 
   var aset={};
@@ -193,10 +204,7 @@ function init(){
     var o=document.createElement('option');o.value=pv;o.textContent=pv;provSel.appendChild(o);
   });
 
-  if(typeof HAS_EMBEDDINGS!=='undefined'&&HAS_EMBEDDINGS){
-    var sw=document.getElementById('sem-wrap');if(sw)sw.style.display='';
-    var si=document.getElementById('sem-inner');if(si)si.style.display='';
-  }
+  /* SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome */
 
   renderDash(DATA);
   renderFilters();
@@ -208,6 +216,7 @@ function getBloqueColor(b){return BC[ALL_BLOQUES.indexOf(b)%BC.length]}
 /* ── Dashboard ─────────────────────────────────────────────────── */
 function getDashFiltered(){
   return DATA.filter(function(p){
+    if(dashActiveAnio&&String(p.anio)!==dashActiveAnio)return false;
     if(dashFiltroTipo&&p.tipo!==dashFiltroTipo)return false;
     if(dashFiltroBloque&&p.bloques.indexOf(dashFiltroBloque)<0)return false;
     if(dashFiltroCom&&p.comisiones.indexOf(dashFiltroCom)<0)return false;
@@ -231,6 +240,7 @@ function renderDash(data){
   document.getElementById('stat-otros').innerHTML=total-(s.tipos['PL']||0)-(s.tipos['PD']||0);
 
   var partes=[];
+  if(dashActiveAnio)partes.push('A\u00f1o: '+dashActiveAnio);
   if(dashFiltroTipo)partes.push('Tipo: '+(TIPOS[dashFiltroTipo]||dashFiltroTipo));
   if(dashFiltroBloque)partes.push('Bloque: '+dashFiltroBloque);
   if(dashFiltroCom)partes.push('Comisi\u00f3n: '+dashFiltroCom);
@@ -277,7 +287,15 @@ function renderDash(data){
 function clickDashTipo(t){dashFiltroTipo=dashFiltroTipo===t?'':t;renderDash(getDashFiltered())}
 function clickDashBloque(b){dashFiltroBloque=dashFiltroBloque===b?'':b;renderDash(getDashFiltered())}
 function clickDashCom(c){dashFiltroCom=dashFiltroCom===c?'':c;renderDash(getDashFiltered())}
-function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(DATA)}
+function setDashAnio(anio){
+  dashActiveAnio=anio;
+  ['all','2025','2026'].forEach(function(a){
+    var el=document.getElementById('dash-anio-'+(a==='all'?'all':a));
+    if(el)el.className='chip'+(anio===(a==='all'?'':a)?' on':'');
+  });
+  renderDash(getDashFiltered());
+}
+function clearDash(){dashFiltroTipo='';dashFiltroBloque='';dashFiltroCom='';renderDash(getDashFiltered())}
 
 /* ── Filtros ───────────────────────────────────────────────────── */
 function renderFilters(){
@@ -336,7 +354,8 @@ function parseFecha(s){
 /* ── Lista ─────────────────────────────────────────────────────── */
 function getFiltered(){
   var q=document.getElementById('search').value.toLowerCase().trim();
-  var selCom=document.getElementById('com-select').value;
+  var selCom1=document.getElementById('com-select-1').value;
+  var selComAdic=document.getElementById('com-select-adic').value;
   var selAutor=document.getElementById('autor-select').value;
   var dDesde=document.getElementById('fecha-desde').value;
   var dHasta=document.getElementById('fecha-hasta').value;
@@ -349,7 +368,8 @@ function getFiltered(){
     if(activeBloque&&p.bloques.indexOf(activeBloque)<0)return false;
     if(activeOrigen&&p.origen!==activeOrigen)return false;
     if(activeProvincia&&(!p.provincias||p.provincias.indexOf(activeProvincia)<0))return false;
-    if(selCom&&p.comisiones.indexOf(selCom)<0)return false;
+    if(selCom1&&p.comisiones[0]!==selCom1)return false;
+    if(selComAdic&&p.comisiones.slice(1).indexOf(selComAdic)<0)return false;
     if(selAutor&&p.autores.indexOf(selAutor)<0)return false;
     if(fDesde||fHasta){
       var fp=parseFecha(p.fecha);
@@ -491,6 +511,91 @@ function limpiarSemantico(){
   document.getElementById('sem-status').textContent='';
   renderList();
 }
+
+/* ── Pestaña Histórico (2010-2024) ──────────────────────────── */
+var histActiveAnio='',histActiveTipo='';
+function initHist(){
+  if(!DATA_HIST||!DATA_HIST.length){
+    document.getElementById('hist-count').innerHTML='Sin datos hist\u00f3ricos a\u00fan.';
+    return;
+  }
+  var years={};
+  DATA_HIST.forEach(function(p){years[p.anio]=1});
+  var ylist=Object.keys(years).map(Number).sort(function(a,b){return b-a});
+  var yhtml='<button class="chip on" id="hist-anio-all" onclick="setHistAnio(\'\')">Todos</button>';
+  ylist.forEach(function(y){
+    yhtml+='<button class="chip" id="hist-anio-'+y+'" onclick="setHistAnio(\''+y+'\')">'+y+'</button>';
+  });
+  document.getElementById('hist-anio-filters').innerHTML=yhtml;
+  var tipos={};
+  DATA_HIST.forEach(function(p){tipos[p.tipo]=1});
+  var thtml='<button class="chip on" id="hist-tipo-all" onclick="setHistTipo(\'\')">Todos</button>';
+  Object.keys(tipos).sort().forEach(function(t){
+    thtml+='<button class="chip" id="hist-tipo-'+t+'" onclick="setHistTipo(\''+t+'\')">'+t+' &middot; '+(TIPOS[t]||t)+'</button>';
+  });
+  document.getElementById('hist-tipo-filters').innerHTML=thtml;
+  renderHist();
+}
+function setHistAnio(anio){
+  histActiveAnio=anio;
+  document.querySelectorAll('[id^="hist-anio-"]').forEach(function(el){
+    var a=el.id.replace('hist-anio-','');
+    el.className='chip'+(anio===(a==='all'?'':a)?' on':'');
+  });
+  renderHist();
+}
+function setHistTipo(t){
+  histActiveTipo=t;
+  document.querySelectorAll('[id^="hist-tipo-"]').forEach(function(el){
+    var a=el.id.replace('hist-tipo-','');
+    el.className='chip'+(t===(a==='all'?'':a)?' on':'');
+  });
+  renderHist();
+}
+function getFilteredHist(){
+  var q=document.getElementById('hist-search').value.toLowerCase().trim();
+  return DATA_HIST.filter(function(p){
+    if(histActiveAnio&&String(p.anio)!==histActiveAnio)return false;
+    if(histActiveTipo&&p.tipo!==histActiveTipo)return false;
+    if(q){
+      var hay=(p.extracto+' '+p.autores.join(' ')+' '+p.comisiones.join(' ')).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  });
+}
+function buildCardHist(p){
+  var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
+  var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
+  var ctags='';
+  p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
+  var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
+  var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
+  return '<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
+}
+function renderHist(){
+  var filtered=getFilteredHist();
+  var tot=filtered.length;
+  document.getElementById('hist-count').innerHTML=tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
+  if(!filtered.length){document.getElementById('hist-list').innerHTML='<div class="no-results">Sin resultados para este filtro.</div>';return;}
+  var html='';
+  filtered.forEach(function(p){html+=buildCardHist(p)});
+  document.getElementById('hist-list').innerHTML=html;
+}
+function exportarHistorial(){
+  var filtered=getFilteredHist();
+  if(!filtered.length){alert('No hay datos para exportar.');return}
+  var rows=[['Tipo','Nro','Origen','Fecha','Autor','Extracto','Giro 1','Giro 2','Giro 3']];
+  filtered.forEach(function(p){
+    rows.push([p.tipo,p.nro+'/'+String(p.anio).slice(-2),p.origen,p.fecha,
+      p.autores.join('; '),p.extracto,p.comisiones[0]||'',p.comisiones[1]||'',p.comisiones[2]||'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:10},{wch:8},{wch:12},{wch:35},{wch:60},{wch:30},{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,ws,'Historico');
+  XLSX.writeFile(wb,'proyectos_historico.xlsx');
+}
 """
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -517,6 +622,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" data-tab="detalle" onclick="switchTab('detalle')">Detalle de expedientes</button>
+  <button class="tab-btn" data-tab="historico" onclick="switchTab('historico')">Hist&oacute;rico 2010-2024</button>
 </div>
 
 <!-- TAB: DASHBOARD -->
@@ -528,6 +634,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="section-body">
       <div id="dash-context" class="dash-context"></div>
+      <div class="filter-row" style="margin-bottom:12px">
+        <button class="chip on" id="dash-anio-all" onclick="setDashAnio('')">Todos</button>
+        <button class="chip" id="dash-anio-2025" onclick="setDashAnio('2025')">2025</button>
+        <button class="chip" id="dash-anio-2026" onclick="setDashAnio('2026')">2026</button>
+      </div>
       <div class="dash-stats-row">
         <div class="stat-card">
           <div class="stat-num" id="stat-total">{total}</div>
@@ -610,10 +721,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <input type="date" class="date-input" id="fecha-hasta" onchange="renderList()">
         </div>
 
-        <div class="filter-label">Comisi&oacute;n</div>
+        <div class="filter-label">Comisi&oacute;n (1er giro)</div>
         <div class="select-wrapper">
-          <select class="filter-select" id="com-select" onchange="renderList()">
+          <select class="filter-select" id="com-select-1" onchange="renderList()">
             <option value="">Todas las comisiones</option>
+          </select>
+          <span class="select-arrow">&#9660;</span>
+        </div>
+
+        <div class="filter-label">Comisi&oacute;n (giros adicionales)</div>
+        <div class="select-wrapper">
+          <select class="filter-select" id="com-select-adic" onchange="renderList()">
+            <option value="">Todos los giros adicionales</option>
           </select>
           <span class="select-arrow">&#9660;</span>
         </div>
@@ -626,6 +745,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <span class="select-arrow">&#9660;</span>
         </div>
 
+        <!-- SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
         <hr class="sem-divider" id="sem-wrap" style="display:none;margin-top:14px">
         <div id="sem-inner" style="display:none">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;margin-top:12px">
@@ -639,6 +759,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
           <div class="sem-status" id="sem-status"></div>
         </div>
+        -->
       </div>
     </div>
 
@@ -648,6 +769,26 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <button class="btn-export" onclick="exportarExcel()">&#128196; Exportar Excel</button>
       </div>
       <div id="list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: HISTÓRICO -->
+<div id="tab-historico" class="tab-content">
+  <div class="section-block">
+    <div class="section-header">
+      <h2>Expedientes hist&oacute;ricos</h2>
+      <span class="section-hint">2010–2024 &middot; sin info de bloque pol&iacute;tico</span>
+    </div>
+    <div class="section-body">
+      <div id="hist-anio-filters" class="filter-row" style="margin-bottom:10px"></div>
+      <div id="hist-tipo-filters" class="filter-row" style="margin-bottom:10px"></div>
+      <input class="search-box" type="text" id="hist-search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="if(histInited)renderHist()">
+      <div class="results-header">
+        <span class="results-count" id="hist-count"></span>
+        <button class="btn-export" onclick="exportarHistorial()">&#128196; Exportar Excel</button>
+      </div>
+      <div id="hist-list"></div>
     </div>
   </div>
 </div>
@@ -671,7 +812,7 @@ def parse_fecha_sort(fecha_str):
         return f"{parts[2]}{parts[1]}{parts[0]}"
     return "00000000"
 
-def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json"):
+def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json", proyectos_hist=None):
     # Ordena por fecha exacta, luego por año y finalmente por número de expediente (más nuevo a más viejo)
     proyectos = sorted(proyectos, key=lambda x: (parse_fecha_sort(x.get("fecha", "")), x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
@@ -679,8 +820,9 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
     datos_js = json.dumps(proyectos, ensure_ascii=False)
-    has_embeddings = os.path.exists(embeddings_path)
-    js_final = f"var HAS_EMBEDDINGS={'true' if has_embeddings else 'false'};\n" + JS
+    hist_js = json.dumps(sorted(proyectos_hist or [], key=lambda x: (x["anio"], x["nro"]), reverse=True), ensure_ascii=False)
+    # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
+    js_final = f"var HAS_EMBEDDINGS=false;\nvar DATA_HIST={hist_js};\n" + JS
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,

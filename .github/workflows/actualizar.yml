@@ -33,7 +33,17 @@ jobs:
           ARCHIVO_SALIDA: index.html
           ARCHIVO_HISTORICOS: trazabilidad.tsv
 
+      - name: Scraping histórico (2010-2024)
+        run: python scraper_historico.py
+        env:
+          ARCHIVO_HIST_TSV: trazabilidad_historico.tsv
+          HISTORICO_CONTROL: scraping_historico.json
+          TIMEOUT_MINUTOS: "20"
+        continue-on-error: true
+
+      # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
       - name: Generar embeddings semánticos
+        if: false
         run: python generar_embeddings.py
         env:
           ARCHIVO_HISTORICOS: trazabilidad.tsv
@@ -44,9 +54,9 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html embeddings.json
+          git add index.html trazabilidad_historico.tsv scraping_historico.json
           if git diff --staged --quiet; then
-            echo "Sin cambios en index.html ni embeddings.json"
+            echo "Sin cambios en index.html"
           else
             FECHA=$(TZ='America/Argentina/Buenos_Aires' date '+%d/%m/%Y %H:%M ART')
             git commit -m "dashboard: actualizacion automatica ${FECHA}"
