@@ -42,7 +42,7 @@ from scraper_senado import (
 
 ARCHIVO_HIST_TSV  = os.getenv("ARCHIVO_HIST_TSV",  "trazabilidad_historico.tsv")
 HISTORICO_CONTROL = os.getenv("HISTORICO_CONTROL", "scraping_historico.json")
-TIMEOUT_MINUTOS   = int(os.getenv("TIMEOUT_MINUTOS", "20"))
+TIMEOUT_MINUTOS   = int(os.getenv("TIMEOUT_MINUTOS", "12"))
 ANIO_INICIO       = 2010
 
 TSV_FIELDNAMES = ["NRO", "ANIO", "TIPO", "ORIGEN", "CARATULA", "MESA", "DAE",

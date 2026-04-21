@@ -38,7 +38,7 @@ jobs:
         env:
           ARCHIVO_HIST_TSV: trazabilidad_historico.tsv
           HISTORICO_CONTROL: scraping_historico.json
-          TIMEOUT_MINUTOS: "20"
+          TIMEOUT_MINUTOS: "12"
         continue-on-error: true
 
       # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
@@ -60,5 +60,6 @@ jobs:
           else
             FECHA=$(TZ='America/Argentina/Buenos_Aires' date '+%d/%m/%Y %H:%M ART')
             git commit -m "dashboard: actualizacion automatica ${FECHA}"
+            git pull --rebase origin main
             git push
           fi
