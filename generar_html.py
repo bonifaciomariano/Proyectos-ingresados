@@ -156,13 +156,11 @@ var dashFiltroTipo='',dashFiltroBloque='',dashFiltroCom='',dashActiveAnio='';
 var activeTipos={},activeBloque='',activeOrigen='',activeProvincia='',activeAnio='';
 var semActivo=false,semResultados=[],EMBEDDINGS=null,semPipeline=null;
 
-var histInited=false;
 function switchTab(id){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
   document.getElementById('tab-'+id).classList.add('active');
   document.querySelector('[data-tab="'+id+'"]').classList.add('active');
-  if(id==='historico'&&!histInited){histInited=true;initHist();}
 }
 
 function init(){
@@ -512,90 +510,6 @@ function limpiarSemantico(){
   renderList();
 }
 
-/* ── Pestaña Histórico (2010-2024) ──────────────────────────── */
-var histActiveAnio='',histActiveTipo='';
-function initHist(){
-  if(!DATA_HIST||!DATA_HIST.length){
-    document.getElementById('hist-count').innerHTML='Sin datos hist\u00f3ricos a\u00fan.';
-    return;
-  }
-  var years={};
-  DATA_HIST.forEach(function(p){years[p.anio]=1});
-  var ylist=Object.keys(years).map(Number).sort(function(a,b){return b-a});
-  var yhtml='<button class="chip on" id="hist-anio-all" onclick="setHistAnio(\'\')">Todos</button>';
-  ylist.forEach(function(y){
-    yhtml+='<button class="chip" id="hist-anio-'+y+'" onclick="setHistAnio(\''+y+'\')">'+y+'</button>';
-  });
-  document.getElementById('hist-anio-filters').innerHTML=yhtml;
-  var tipos={};
-  DATA_HIST.forEach(function(p){tipos[p.tipo]=1});
-  var thtml='<button class="chip on" id="hist-tipo-all" onclick="setHistTipo(\'\')">Todos</button>';
-  Object.keys(tipos).sort().forEach(function(t){
-    thtml+='<button class="chip" id="hist-tipo-'+t+'" onclick="setHistTipo(\''+t+'\')">'+t+' &middot; '+(TIPOS[t]||t)+'</button>';
-  });
-  document.getElementById('hist-tipo-filters').innerHTML=thtml;
-  renderHist();
-}
-function setHistAnio(anio){
-  histActiveAnio=anio;
-  document.querySelectorAll('[id^="hist-anio-"]').forEach(function(el){
-    var a=el.id.replace('hist-anio-','');
-    el.className='chip'+(anio===(a==='all'?'':a)?' on':'');
-  });
-  renderHist();
-}
-function setHistTipo(t){
-  histActiveTipo=t;
-  document.querySelectorAll('[id^="hist-tipo-"]').forEach(function(el){
-    var a=el.id.replace('hist-tipo-','');
-    el.className='chip'+(t===(a==='all'?'':a)?' on':'');
-  });
-  renderHist();
-}
-function getFilteredHist(){
-  var q=document.getElementById('hist-search').value.toLowerCase().trim();
-  return DATA_HIST.filter(function(p){
-    if(histActiveAnio&&String(p.anio)!==histActiveAnio)return false;
-    if(histActiveTipo&&p.tipo!==histActiveTipo)return false;
-    if(q){
-      var hay=(p.extracto+' '+p.autores.join(' ')+' '+p.comisiones.join(' ')).toLowerCase();
-      if(hay.indexOf(q)<0)return false;
-    }
-    return true;
-  });
-}
-function buildCardHist(p){
-  var fg=TIPO_FG[p.tipo]||'#888',bg=TIPO_BG[p.tipo]||'#eee';
-  var autoresTxt=p.autores.slice(0,3).join(' \u00b7 ')+(p.autores.length>3?' +'+(p.autores.length-3)+' m\u00e1s':'');
-  var ctags='';
-  p.comisiones.forEach(function(c){ctags+='<span class="ctag">'+c+'</span>'});
-  var expNro=p.origen+'-'+p.nro+'/'+String(p.anio).slice(-2);
-  var linkBtn=p.url?'<a class="exp-link" href="'+p.url+'" target="_blank">Ver expediente &#8599;</a>':'';
-  return '<div class="card"><div class="card-exp"><div class="exp-id"><span class="exp-badge" style="background:'+bg+';color:'+fg+'">'+p.tipo+'</span><span class="exp-nro">'+expNro+'</span>'+(p.fecha?'<span class="exp-fecha">'+p.fecha+'</span>':'')+'</div>'+linkBtn+'</div><div class="card-body"><div class="extracto">'+p.extracto+'</div><div class="card-meta">'+(autoresTxt?'<div class="meta-row"><span class="meta-bold">'+autoresTxt+'</span></div>':'')+(ctags?'<div class="meta-row">'+ctags+'</div>':'')+'</div></div></div>';
-}
-function renderHist(){
-  var filtered=getFilteredHist();
-  var tot=filtered.length;
-  document.getElementById('hist-count').innerHTML=tot+' proyecto'+(tot!==1?'s':'')+' encontrado'+(tot!==1?'s':'');
-  if(!filtered.length){document.getElementById('hist-list').innerHTML='<div class="no-results">Sin resultados para este filtro.</div>';return;}
-  var html='';
-  filtered.forEach(function(p){html+=buildCardHist(p)});
-  document.getElementById('hist-list').innerHTML=html;
-}
-function exportarHistorial(){
-  var filtered=getFilteredHist();
-  if(!filtered.length){alert('No hay datos para exportar.');return}
-  var rows=[['Tipo','Nro','Origen','Fecha','Autor','Extracto','Giro 1','Giro 2','Giro 3']];
-  filtered.forEach(function(p){
-    rows.push([p.tipo,p.nro+'/'+String(p.anio).slice(-2),p.origen,p.fecha,
-      p.autores.join('; '),p.extracto,p.comisiones[0]||'',p.comisiones[1]||'',p.comisiones[2]||'']);
-  });
-  var wb=XLSX.utils.book_new();
-  var ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:6},{wch:10},{wch:8},{wch:12},{wch:35},{wch:60},{wch:30},{wch:30},{wch:30}];
-  XLSX.utils.book_append_sheet(wb,ws,'Historico');
-  XLSX.writeFile(wb,'proyectos_historico.xlsx');
-}
 """
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -622,7 +536,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="tab-btn" data-tab="detalle" onclick="switchTab('detalle')">Detalle de expedientes</button>
-  <button class="tab-btn" data-tab="historico" onclick="switchTab('historico')">Hist&oacute;rico 2010-2024</button>
+
 </div>
 
 <!-- TAB: DASHBOARD -->
@@ -773,26 +687,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 </div>
 
-<!-- TAB: HISTÓRICO -->
-<div id="tab-historico" class="tab-content">
-  <div class="section-block">
-    <div class="section-header">
-      <h2>Expedientes hist&oacute;ricos</h2>
-      <span class="section-hint">2010–2024 &middot; sin info de bloque pol&iacute;tico</span>
-    </div>
-    <div class="section-body">
-      <div id="hist-anio-filters" class="filter-row" style="margin-bottom:10px"></div>
-      <div id="hist-tipo-filters" class="filter-row" style="margin-bottom:10px"></div>
-      <input class="search-box" type="text" id="hist-search" placeholder="Buscar por extracto, autor o comisi&oacute;n&hellip;" oninput="if(histInited)renderHist()">
-      <div class="results-header">
-        <span class="results-count" id="hist-count"></span>
-        <button class="btn-export" onclick="exportarHistorial()">&#128196; Exportar Excel</button>
-      </div>
-      <div id="hist-list"></div>
-    </div>
-  </div>
-</div>
-
 <div class="footer">Prosecretar&iacute;a Parlamentaria &middot; Senado de la Naci&oacute;n Argentina<br>Datos al {fecha}</div>
 
 <script>
@@ -812,7 +706,7 @@ def parse_fecha_sort(fecha_str):
         return f"{parts[2]}{parts[1]}{parts[0]}"
     return "00000000"
 
-def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json", proyectos_hist=None):
+def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="index.html", embeddings_path="embeddings.json"):
     # Ordena por fecha exacta, luego por año y finalmente por número de expediente (más nuevo a más viejo)
     proyectos = sorted(proyectos, key=lambda x: (parse_fecha_sort(x.get("fecha", "")), x["anio"], x["nro"]), reverse=True)
     total = len(proyectos)
@@ -820,9 +714,8 @@ def generar_desde_lista(proyectos, titulo_periodo, fecha_datos, archivo_salida="
     for p in proyectos:
         tipos_count[p["tipo"]] = tipos_count.get(p["tipo"], 0) + 1
     datos_js = json.dumps(proyectos, ensure_ascii=False)
-    hist_js = json.dumps(sorted(proyectos_hist or [], key=lambda x: (x["anio"], x["nro"]), reverse=True), ensure_ascii=False)
     # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
-    js_final = f"var HAS_EMBEDDINGS=false;\nvar DATA_HIST={hist_js};\n" + JS
+    js_final = "var HAS_EMBEDDINGS=false;\n" + JS
     html_final = HTML_TEMPLATE.format(
         titulo = titulo_periodo,
         fecha  = fecha_datos,
