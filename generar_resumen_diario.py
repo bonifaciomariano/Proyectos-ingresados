@@ -83,7 +83,7 @@ def main():
     print(f"Senadores cargados: {len(por_apellido_nombre)} (únicos por apellido+nombre)")
 
     ahora = datetime.now()
-    hace_24h = ahora - timedelta(hours=24)
+    ayer = (ahora - timedelta(days=1)).date()  # fecha exacta de ayer, sin hora
 
     proyectos = []
     total_leidas = 0
@@ -95,7 +95,7 @@ def main():
             fecha = parse_fecha_mesa(fila.get("MESA", ""))
             if fecha is None:
                 continue
-            if not (hace_24h <= fecha <= ahora):
+            if fecha.date() != ayer:
                 continue
 
             nro = fila.get("NRO", "").strip()
@@ -135,7 +135,8 @@ def main():
             })
 
     resultado = {
-        "fecha_generacion": ahora.strftime("%d/%m/%Y %H:%M"),
+        "proyectos_fecha": ayer.strftime("%d/%m/%Y"),
+        "generado": ahora.strftime("%d/%m/%Y %H:%M"),
         "total": len(proyectos),
         "proyectos": proyectos,
     }
@@ -143,7 +144,7 @@ def main():
     with open("resumen_diario.json", "w", encoding="utf-8") as f:
         json.dump(resultado, f, ensure_ascii=False, indent=2)
 
-    print(f"Filas leídas: {total_leidas} | Filas en últimas 24hs: {len(proyectos)}")
+    print(f"Filas leídas: {total_leidas} | Proyectos de {ayer.strftime('%d/%m/%Y')}: {len(proyectos)}")
 
 
 if __name__ == "__main__":
