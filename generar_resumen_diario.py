@@ -4,10 +4,8 @@ import os
 import unicodedata
 from datetime import datetime, timedelta
 
-import openpyxl
-
 ARCHIVO = os.getenv("ARCHIVO_HISTORICOS", "trazabilidad.tsv")
-EXCEL_SENADORES = os.getenv("EXCEL_SENADORES", "Senadores 2026.xlsx")
+CSV_SENADORES = os.getenv("CSV_SENADORES", "senadores_vigentes.csv")
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -21,7 +19,6 @@ TIPOS = {
 
 
 def normalizar(s):
-    """Convierte a mayúsculas y elimina acentos/diacríticos."""
     s = str(s).upper().strip()
     return "".join(
         c for c in unicodedata.normalize("NFD", s)
@@ -30,25 +27,33 @@ def normalizar(s):
 
 
 def cargar_senadores():
-    """Lee Senadores 2026.xlsx y devuelve {apellido_normalizado: {bloque, provincia}}."""
-    dicc = {}
+    """Lee senadores_vigentes.csv y devuelve dos dicts para lookup de dos niveles:
+    - por_apellido:       {apellido_norm: {bloque, provincia}}
+    - por_apellido_nombre: {apellido_norm + '_' + primer_nombre_norm: {bloque, provincia}}
+    El segundo nivel desambigua cuando dos senadores comparten apellido (ej: LOPEZ).
+    """
+    por_apellido = {}
+    por_apellido_nombre = {}
     try:
-        wb = openpyxl.load_workbook(EXCEL_SENADORES, read_only=True, data_only=True)
-        ws = wb.active
-        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            r = dict(zip(headers, row))
-            apellido = r.get("APELLIDO") or ""
-            clave = normalizar(apellido)
-            if clave:
-                dicc[clave] = {
-                    "bloque": str(r.get("BLOQUE") or "").strip(),
-                    "provincia": str(r.get("PROVINCIA") or "").strip(),
+        with open(CSV_SENADORES, newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                apellido = row.get("APELLIDO", "").strip()
+                nombre = row.get("NOMBRE", "").strip()
+                clave_ap = normalizar(apellido)
+                if not clave_ap:
+                    continue
+                datos = {
+                    "bloque": row.get("BLOQUE", "").strip(),
+                    "provincia": row.get("PROVINCIA", "").strip(),
                 }
-        wb.close()
+                primer_nombre = normalizar(nombre.split()[0]) if nombre else ""
+                clave_ap_nom = f"{clave_ap}_{primer_nombre}" if primer_nombre else clave_ap
+                por_apellido[clave_ap] = datos
+                por_apellido_nombre[clave_ap_nom] = datos
     except FileNotFoundError:
-        print(f"Advertencia: no se encontró {EXCEL_SENADORES}, bloque/provincia quedarán vacíos.")
-    return dicc
+        print(f"Advertencia: no se encontró {CSV_SENADORES}, bloque/provincia quedarán vacíos.")
+    return por_apellido, por_apellido_nombre
 
 
 def parse_fecha_mesa(valor):
@@ -60,14 +65,22 @@ def parse_fecha_mesa(valor):
         return None
 
 
-def apellido_principal(autor):
-    """Extrae el apellido del primer firmante: todo lo que está antes de la primera coma."""
-    return autor.split(",")[0].strip()
+def buscar_senador(autor, por_apellido, por_apellido_nombre):
+    """Busca datos del primer firmante. Intenta apellido+primer_nombre antes que solo apellido."""
+    partes = autor.split(",", 1)
+    apellido_norm = normalizar(partes[0].strip())
+    if len(partes) > 1:
+        nombre_completo = partes[1].split(" -")[0].strip()
+        primer_nombre_norm = normalizar(nombre_completo.split()[0]) if nombre_completo else ""
+        clave_full = f"{apellido_norm}_{primer_nombre_norm}"
+        if clave_full in por_apellido_nombre:
+            return por_apellido_nombre[clave_full]
+    return por_apellido.get(apellido_norm, {})
 
 
 def main():
-    senadores = cargar_senadores()
-    print(f"Senadores cargados desde Excel: {len(senadores)}")
+    por_apellido, por_apellido_nombre = cargar_senadores()
+    print(f"Senadores cargados: {len(por_apellido_nombre)} (únicos por apellido+nombre)")
 
     ahora = datetime.now()
     hace_24h = ahora - timedelta(hours=24)
@@ -94,8 +107,7 @@ def main():
 
             titulo = caratula.split(":", 1)[1].strip() if ":" in caratula else caratula
 
-            clave = normalizar(apellido_principal(autor))
-            datos_senador = senadores.get(clave, {})
+            datos_senador = buscar_senador(autor, por_apellido, por_apellido_nombre)
 
             comisiones = [
                 fila.get(c, "").strip()
