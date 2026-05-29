@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Proyectos ingresados — [FECHA_LARGA]</title>
 </head>
-<body style="margin:0; padding:0; background-color:#F0F0F0; font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0; padding:0; background-color:#F0F0F0; font-family:Tahoma,Geneva,sans-serif;">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F0F0F0;">
   <tr>
     <td align="center" style="padding:20px 10px;">
 
       <!-- Contenedor principal 600px -->
-      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%; background-color:#FFFFFF;">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%; background-color:#FFFFFF; font-family:Tahoma,Geneva,sans-serif;">
 
         <!-- ═══════════════════════════════════════════════════════════
              A. ENCABEZADO
         ════════════════════════════════════════════════════════════ -->
         <tr>
           <td style="background-color:#1a5fa5; padding:24px 28px 20px 28px;">
-            <p style="margin:0 0 4px 0; font-size:11px; color:#A8C8F0; letter-spacing:1.5px; text-transform:uppercase;">
+            <p style="margin:0 0 4px 0; font-size:11px; color:#A8C8F0; letter-spacing:1.5px; text-transform:uppercase; font-family:Tahoma,Geneva,sans-serif;">
               Senado de la Nación Argentina
             </p>
-            <h1 style="margin:0 0 6px 0; font-size:22px; color:#FFFFFF; font-weight:700; line-height:1.2;">
+            <h1 style="margin:0 0 6px 0; font-size:22px; color:#FFFFFF; font-weight:700; line-height:1.2; font-family:Tahoma,Geneva,sans-serif;">
               Proyectos ingresados — [FECHA_LARGA]
             </h1>
-            <p style="margin:0; font-size:13px; color:#C5DCF5;">
+            <p style="margin:0; font-size:13px; color:#C5DCF5; font-family:Tahoma,Geneva,sans-serif;">
               Generado a las [HH:MM] ART
             </p>
           </td>
@@ -35,37 +35,77 @@
         </tr>
 
         <!-- ═══════════════════════════════════════════════════════════
-             B. MÉTRICAS SUPERIORES
+             B. MÉTRICAS SUPERIORES — DINÁMICA
+             ─────────────────────────────────────────────────────────
+             INSTRUCCIONES PARA LA ROUTINE:
+
+             Siempre renderizar 4 celdas (Total + 3 tipos), separadas
+             por spacers del 2%.
+
+             CELDA 1 — siempre "Total":
+               label: "Total"
+               valor: [TOTAL]  (total del día)
+               color número: #1a1a1a
+
+             CELDAS 2, 3 y 4 — tipos más frecuentes del día:
+               1. Contar proyectos por tipo usando el campo "tipo"
+                  del resumen_diario.json.
+               2. Descartar los tipos con 0 proyectos.
+               3. Ordenar de mayor a menor conteo.
+               4. Tomar los 3 primeros.
+               5. Si hay más de 3 tipos distintos, la celda 4 muestra
+                  "Otros" con la suma de los tipos restantes.
+               6. Si hay menos de 3 tipos, llenar las celdas vacías
+                  con una celda de fondo blanco y sin contenido
+                  (placeholder invisible para mantener el layout).
+
+             Labels por código de tipo:
+               PL → Proyectos de Ley      (color número: #1a5fa5)
+               PR → Proyectos de Resolución
+               PD → Proyectos de Declaración
+               PC → Proyectos de Comunicación
+               CV → Comunicaciones Varias
+               AC → Acuerdos
+               CA → Com. de Auditoría
+               Otros → Otros              (suma de tipos no top-3)
+             (todos los tipos excepto PL usan color #1a1a1a)
+
+             Ejemplo con datos reales: si el día tiene
+               PL=18, PR=7, PD=5, PC=3, CV=1 → Total=34
+             → Celda 1: Total (34)
+             → Celda 2: Proyectos de Ley (18)
+             → Celda 3: Proyectos de Resolución (7)
+             → Celda 4: Otros (5+3+1=9)
         ════════════════════════════════════════════════════════════ -->
         <tr>
           <td style="padding:20px 28px 16px 28px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <!-- Total -->
+                <!-- Celda 1: Total — siempre fija -->
                 <td width="25%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
-                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Total</p>
-                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL]</p>
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">Total</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a; font-family:Tahoma,Geneva,sans-serif;">[TOTAL]</p>
                 </td>
                 <!-- Spacer -->
                 <td width="2%" style="font-size:0;">&nbsp;</td>
-                <!-- Leyes -->
+                <!-- Celda 2: tipo más frecuente del día -->
                 <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
-                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Leyes</p>
-                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a5fa5;">[TOTAL_PL]</p>
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">[LABEL_TIPO_1]</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:[COLOR_TIPO_1]; font-family:Tahoma,Geneva,sans-serif;">[N_TIPO_1]</p>
                 </td>
                 <!-- Spacer -->
                 <td width="2%" style="font-size:0;">&nbsp;</td>
-                <!-- Resoluciones -->
+                <!-- Celda 3: segundo tipo más frecuente -->
                 <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
-                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Resoluciones</p>
-                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL_PR]</p>
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">[LABEL_TIPO_2]</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:[COLOR_TIPO_2]; font-family:Tahoma,Geneva,sans-serif;">[N_TIPO_2]</p>
                 </td>
                 <!-- Spacer -->
                 <td width="2%" style="font-size:0;">&nbsp;</td>
-                <!-- Declaraciones -->
+                <!-- Celda 4: tercer tipo más frecuente, o "Otros" si hay más de 3 tipos -->
                 <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
-                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Declaraciones</p>
-                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL_PD]</p>
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">[LABEL_TIPO_3]</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:[COLOR_TIPO_3]; font-family:Tahoma,Geneva,sans-serif;">[N_TIPO_3]</p>
                 </td>
               </tr>
             </table>
@@ -82,14 +122,14 @@
 
                 <!-- Panel izquierdo: Por bloque -->
                 <td width="48%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 16px;">
-                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">
                     Por bloque
                   </p>
 
                   <!-- Ejemplo de fila de bloque — repetir por cada bloque -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
                     <tr>
-                      <td style="font-size:12px; color:#1a1a1a; padding-bottom:3px;" colspan="2">[NOMBRE_BLOQUE] <span style="color:#999999;">([N])</span></td>
+                      <td style="font-size:12px; color:#1a1a1a; padding-bottom:3px; font-family:Tahoma,Geneva,sans-serif;" colspan="2">[NOMBRE_BLOQUE] <span style="color:#999999;">([N])</span></td>
                     </tr>
                     <tr>
                       <!-- Barra proporcional: ancho de celda coloreada = (N/TOTAL)*100% -->
@@ -106,16 +146,16 @@
 
                 <!-- Panel derecho: Por comisión -->
                 <td width="48%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 16px;">
-                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">
                     Por comisión
                   </p>
 
                   <!-- Ejemplo de fila de comisión — repetir por cada comisión presente -->
                   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
                     <tr>
-                      <td style="font-size:12px; color:#1a1a1a;">[NOMBRE_COMISION]</td>
+                      <td style="font-size:12px; color:#1a1a1a; font-family:Tahoma,Geneva,sans-serif;">[NOMBRE_COMISION]</td>
                       <td align="right">
-                        <span style="display:inline-block; background-color:#EEEEEE; color:#666666; font-size:11px; padding:1px 7px; border-radius:10px;">[N]</span>
+                        <span style="display:inline-block; background-color:#EEEEEE; color:#666666; font-size:11px; padding:1px 7px; border-radius:10px; font-family:Tahoma,Geneva,sans-serif;">[N]</span>
                       </td>
                     </tr>
                   </table>
@@ -133,7 +173,7 @@
         ════════════════════════════════════════════════════════════ -->
         <tr>
           <td style="padding:0 28px 8px 28px;">
-            <p style="margin:0 0 12px 0; font-size:13px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+            <p style="margin:0 0 12px 0; font-size:13px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px; font-family:Tahoma,Geneva,sans-serif;">
               Detalle de proyectos
             </p>
           </td>
@@ -145,7 +185,7 @@
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="background-color:#F5F5F5; border-left:3px solid #1a5fa5; padding:8px 12px; margin-bottom:2px;">
-                  <p style="margin:0; font-size:13px; font-weight:700; color:#1a5fa5;">
+                  <p style="margin:0; font-size:13px; font-weight:700; color:#1a5fa5; font-family:Tahoma,Geneva,sans-serif;">
                     Proyectos de Ley <span style="font-weight:400; color:#666666;">([TOTAL_PL])</span>
                   </p>
                 </td>
@@ -161,18 +201,18 @@
               <tr>
                 <td style="padding:12px 0 11px 0; border-bottom:1px solid #E5E5E5;">
                   <!-- Línea 1: expediente + título -->
-                  <p style="margin:0 0 4px 0; font-size:13px; color:#1a1a1a; line-height:1.4;">
-                    <a href="[URL]" style="color:#1a5fa5; text-decoration:none; font-weight:700;">[EXPEDIENTE]</a>
+                  <p style="margin:0 0 4px 0; font-size:13px; color:#1a1a1a; line-height:1.4; font-family:Tahoma,Geneva,sans-serif;">
+                    <a href="[URL]" style="color:#1a5fa5; text-decoration:none; font-weight:700; font-family:Tahoma,Geneva,sans-serif;">[EXPEDIENTE]</a>
                     &nbsp;—&nbsp;[TITULO]
                   </p>
                   <!-- Línea 2: autor · bloque — provincia -->
-                  <p style="margin:0 0 3px 0; font-size:12px; color:#666666; line-height:1.4;">
+                  <p style="margin:0 0 3px 0; font-size:12px; color:#666666; line-height:1.4; font-family:Tahoma,Geneva,sans-serif;">
                     [AUTOR]<!-- si bloque no vacío: -->
                     &nbsp;·&nbsp;<span style="color:#999999;">[BLOQUE]</span><!-- si provincia no vacío: -->
                     &nbsp;—&nbsp;<span style="color:#999999;">[PROVINCIA]</span>
                   </p>
                   <!-- Línea 3: comisiones (omitir si vacío) -->
-                  <p style="margin:0; font-size:12px; color:#999999; line-height:1.4;">
+                  <p style="margin:0; font-size:12px; color:#999999; line-height:1.4; font-family:Tahoma,Geneva,sans-serif;">
                     [COMISIONES]
                   </p>
                 </td>
@@ -197,12 +237,12 @@
           <td style="padding:16px 28px; background-color:#F5F5F5;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr valign="middle">
-                <td style="font-size:11px; color:#999999;">
+                <td style="font-size:11px; color:#999999; font-family:Tahoma,Geneva,sans-serif;">
                   Fuente: scraper automático HSN &nbsp;·&nbsp; [FECHA_GENERACION]
                 </td>
                 <td align="right" style="font-size:11px;">
                   <a href="https://bonifaciomariano.github.io/Proyectos-ingresados"
-                     style="color:#1a5fa5; text-decoration:none;">
+                     style="color:#1a5fa5; text-decoration:none; font-family:Tahoma,Geneva,sans-serif;">
                     Ver dashboard completo &rarr;
                   </a>
                 </td>
