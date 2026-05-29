@@ -731,19 +731,13 @@ def main():
         log.warning("No hay proyectos. Saliendo sin generar HTML.")
         sys.exit(0)
 
-    # 6b. Cargar proyectos históricos 2010-2024 para pestaña Histórico
-    archivo_hist_tsv = os.getenv("ARCHIVO_HIST_TSV", "trazabilidad_historico.tsv")
-    proyectos_hist = cargar_historico_simple(archivo_hist_tsv)
-    log.info(f"  → {len(proyectos_hist)} proyectos históricos (2010-2024) para pestaña Histórico")
-
     # 7. Generar dashboard HTML
     titulo = f"Actualizado {hoy.strftime('%d/%m/%Y')}"
     fecha_datos = hoy.strftime("%d/%m/%Y")
 
     try:
         from generar_html import generar_desde_lista
-        generar_desde_lista(proyectos, titulo, fecha_datos, ARCHIVO_SALIDA,
-                            proyectos_hist=proyectos_hist)
+        generar_desde_lista(proyectos, titulo, fecha_datos, ARCHIVO_SALIDA)
         log.info(f"  → Dashboard generado: {ARCHIVO_SALIDA}")
     except Exception as exc:
         log.error(f"Error generando HTML: {exc}")
