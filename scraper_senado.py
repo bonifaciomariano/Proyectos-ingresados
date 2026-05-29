@@ -338,6 +338,77 @@ def scraper_senadores_web(session):
     return padron
 
 
+# ─────────────────────────────── Persistencia TSV ───────────────────────────
+
+def persistir_frescos_en_tsv(tsv_path, frescos_nuevos):
+    """Hace merge de los proyectos frescos en el TSV acumulado.
+
+    - Lee las filas existentes y construye el set de claves (NRO, ANIO, TIPO).
+    - Solo agrega las filas cuya clave no exista todavía.
+    - Nunca borra ni sobreescribe registros anteriores.
+    - Deduplicación: NRO + ANIO + TIPO.
+    """
+    if not frescos_nuevos:
+        return
+
+    FIELDNAMES = ["ORIGEN", "NRO", "ANIO", "TIPO", "CARATULA",
+                  "DAE", "MESA", "AUTOR", "COM1", "COM2", "COM3", "COM4", "COM5"]
+
+    existentes = set()
+    filas_existentes = []
+    if os.path.exists(tsv_path):
+        with open(tsv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f, delimiter="\t")
+            for row in reader:
+                nro  = (row.get("NRO") or "").strip()
+                anio = (row.get("ANIO") or "").strip()
+                tipo = (row.get("TIPO") or "").strip()
+                if nro:
+                    existentes.add((nro, anio, tipo))
+                    # Normalizar row para que solo tenga los campos del header
+                    filas_existentes.append({k: row.get(k, "") for k in FIELDNAMES})
+
+    nuevas = []
+    for p in frescos_nuevos:
+        clave = (str(p["nro"]), str(p["anio"]), p["tipo"])
+        if clave in existentes:
+            continue
+        autor_raw_list = p.get("autores_raw") or p.get("autores", [])
+        autor_str = " - ".join(autor_raw_list)
+        if autor_str:
+            autor_str += " -"
+        coms = p.get("comisiones", [])
+        mesa = f"{p['fecha']} -" if p.get("fecha") else ""
+        nuevas.append({
+            "ORIGEN":   p.get("origen", "S"),
+            "NRO":      str(p["nro"]),
+            "ANIO":     str(p["anio"]),
+            "TIPO":     p["tipo"],
+            "CARATULA": p.get("caratula") or p.get("extracto", ""),
+            "DAE":      p.get("dae", ""),
+            "MESA":     mesa,
+            "AUTOR":    autor_str,
+            "COM1":     coms[0] if len(coms) > 0 else "",
+            "COM2":     coms[1] if len(coms) > 1 else "",
+            "COM3":     coms[2] if len(coms) > 2 else "",
+            "COM4":     coms[3] if len(coms) > 3 else "",
+            "COM5":     coms[4] if len(coms) > 4 else "",
+        })
+
+    if not nuevas:
+        log.info("  → TSV sin cambios (0 filas nuevas)")
+        return
+
+    with open(tsv_path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=FIELDNAMES, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(filas_existentes)
+        writer.writerows(nuevas)
+
+    log.info(f"  → {len(nuevas)} filas nuevas persistidas en {tsv_path} "
+             f"({len(filas_existentes) + len(nuevas)} total)")
+
+
 # ─────────────────────────────── Históricos (TSV) ────────────────────────────
 
 def cargar_historicos(tsv_path, senador_info):
@@ -656,21 +727,23 @@ def main():
         provincias = get_provincias(autores, senador_info)
 
         frescos.append({
-            "nro":        exp["nro"],
-            "anio":       exp["anio"],
-            "tipo":       exp["tipo"],
-            "tipo_label": TIPOS.get(exp["tipo"], exp["tipo"]),
-            "extracto":   exp["extracto"],
-            "autores":    autores,
-            "coautores":  coautores,
-            "bloques":    bloques,
-            "provincias": provincias,
-            "comisiones": detalle.get("comisiones", []),
-            "fecha":      exp["fecha"],
-            "dae":        detalle.get("dae", ""),
-            "origen":     exp["origen"],
-            "url":        exp["url"],
-            "texto_pdf":  detalle.get("texto_pdf", ""),
+            "nro":         exp["nro"],
+            "anio":        exp["anio"],
+            "tipo":        exp["tipo"],
+            "tipo_label":  TIPOS.get(exp["tipo"], exp["tipo"]),
+            "extracto":    exp["extracto"],
+            "caratula":    caratula,
+            "autores":     autores,
+            "autores_raw": autores_raw,
+            "coautores":   coautores,
+            "bloques":     bloques,
+            "provincias":  provincias,
+            "comisiones":  detalle.get("comisiones", []),
+            "fecha":       exp["fecha"],
+            "dae":         detalle.get("dae", ""),
+            "origen":      exp["origen"],
+            "url":         exp["url"],
+            "texto_pdf":   detalle.get("texto_pdf", ""),
         })
 
     log.info(f"  → {len(frescos)} proyectos frescos ({len(claves_descartar)} descartados)")
@@ -679,7 +752,10 @@ def main():
     if claves_descartar:
         reescribir_tsv_sin_claves(ARCHIVO_HISTORICOS, claves_descartar)
 
-    # 5b. Escribir textos_temp.json con los proyectos frescos que tienen texto PDF
+    # 5b. Persistir frescos nuevos en el TSV acumulado (merge, nunca sobreescribe)
+    persistir_frescos_en_tsv(ARCHIVO_HISTORICOS, frescos)
+
+    # 5c. Escribir textos_temp.json con los proyectos frescos que tienen texto PDF
     #     y que aún no tienen embedding (para que generar_embeddings.py los use)
     embeddings_path = os.getenv("EMBEDDINGS_PATH", "embeddings.json")
     embeddings_existentes = set()
