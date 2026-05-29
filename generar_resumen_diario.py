@@ -1,9 +1,13 @@
 import csv
 import json
 import os
+import unicodedata
 from datetime import datetime, timedelta
 
+import openpyxl
+
 ARCHIVO = os.getenv("ARCHIVO_HISTORICOS", "trazabilidad.tsv")
+EXCEL_SENADORES = os.getenv("EXCEL_SENADORES", "Senadores 2026.xlsx")
 
 TIPOS = {
     "PL": "Proyecto de Ley",
@@ -16,6 +20,37 @@ TIPOS = {
 }
 
 
+def normalizar(s):
+    """Convierte a mayúsculas y elimina acentos/diacríticos."""
+    s = str(s).upper().strip()
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s)
+        if unicodedata.category(c) != "Mn"
+    )
+
+
+def cargar_senadores():
+    """Lee Senadores 2026.xlsx y devuelve {apellido_normalizado: {bloque, provincia}}."""
+    dicc = {}
+    try:
+        wb = openpyxl.load_workbook(EXCEL_SENADORES, read_only=True, data_only=True)
+        ws = wb.active
+        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            r = dict(zip(headers, row))
+            apellido = r.get("APELLIDO") or ""
+            clave = normalizar(apellido)
+            if clave:
+                dicc[clave] = {
+                    "bloque": str(r.get("BLOQUE") or "").strip(),
+                    "provincia": str(r.get("PROVINCIA") or "").strip(),
+                }
+        wb.close()
+    except FileNotFoundError:
+        print(f"Advertencia: no se encontró {EXCEL_SENADORES}, bloque/provincia quedarán vacíos.")
+    return dicc
+
+
 def parse_fecha_mesa(valor):
     """Extrae DD/MM/YYYY del campo MESA que tiene formato 'DD/MM/YYYY -'."""
     parte = valor.strip().split(" ")[0]
@@ -25,7 +60,15 @@ def parse_fecha_mesa(valor):
         return None
 
 
+def apellido_principal(autor):
+    """Extrae el apellido del primer firmante: todo lo que está antes de la primera coma."""
+    return autor.split(",")[0].strip()
+
+
 def main():
+    senadores = cargar_senadores()
+    print(f"Senadores cargados desde Excel: {len(senadores)}")
+
     ahora = datetime.now()
     hace_24h = ahora - timedelta(hours=24)
 
@@ -47,8 +90,12 @@ def main():
             origen = fila.get("ORIGEN", "").strip()
             tipo = fila.get("TIPO", "").strip()
             caratula = fila.get("CARATULA", "").strip()
+            autor = fila.get("AUTOR", "").strip()
 
             titulo = caratula.split(":", 1)[1].strip() if ":" in caratula else caratula
+
+            clave = normalizar(apellido_principal(autor))
+            datos_senador = senadores.get(clave, {})
 
             comisiones = [
                 fila.get(c, "").strip()
@@ -67,9 +114,9 @@ def main():
                 "tipo": tipo,
                 "tipo_label": TIPOS.get(tipo, tipo),
                 "titulo": titulo,
-                "autor": fila.get("AUTOR", "").strip(),
-                "bloque": fila.get("BLOQUE", "").strip() if "BLOQUE" in fila else "",
-                "provincia": fila.get("PROVINCIA", "").strip() if "PROVINCIA" in fila else "",
+                "autor": autor,
+                "bloque": datos_senador.get("bloque", ""),
+                "provincia": datos_senador.get("provincia", ""),
                 "fecha": fecha.strftime("%d/%m/%Y"),
                 "comisiones": " | ".join(comisiones),
                 "url": url,
