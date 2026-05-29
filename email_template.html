@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyectos ingresados — [FECHA_LARGA]</title>
+</head>
+<body style="margin:0; padding:0; background-color:#F0F0F0; font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F0F0F0;">
+  <tr>
+    <td align="center" style="padding:20px 10px;">
+
+      <!-- Contenedor principal 600px -->
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%; background-color:#FFFFFF;">
+
+        <!-- ═══════════════════════════════════════════════════════════
+             A. ENCABEZADO
+        ════════════════════════════════════════════════════════════ -->
+        <tr>
+          <td style="background-color:#1a5fa5; padding:24px 28px 20px 28px;">
+            <p style="margin:0 0 4px 0; font-size:11px; color:#A8C8F0; letter-spacing:1.5px; text-transform:uppercase;">
+              Senado de la Nación Argentina
+            </p>
+            <h1 style="margin:0 0 6px 0; font-size:22px; color:#FFFFFF; font-weight:700; line-height:1.2;">
+              Proyectos ingresados — [FECHA_LARGA]
+            </h1>
+            <p style="margin:0; font-size:13px; color:#C5DCF5;">
+              Generado a las [HH:MM] ART
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="height:3px; background-color:#E5E5E5;"></td>
+        </tr>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             B. MÉTRICAS SUPERIORES
+        ════════════════════════════════════════════════════════════ -->
+        <tr>
+          <td style="padding:20px 28px 16px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <!-- Total -->
+                <td width="25%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Total</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL]</p>
+                </td>
+                <!-- Spacer -->
+                <td width="2%" style="font-size:0;">&nbsp;</td>
+                <!-- Leyes -->
+                <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Leyes</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a5fa5;">[TOTAL_PL]</p>
+                </td>
+                <!-- Spacer -->
+                <td width="2%" style="font-size:0;">&nbsp;</td>
+                <!-- Resoluciones -->
+                <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Resoluciones</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL_PR]</p>
+                </td>
+                <!-- Spacer -->
+                <td width="2%" style="font-size:0;">&nbsp;</td>
+                <!-- Declaraciones -->
+                <td width="23%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 8px; text-align:center;">
+                  <p style="margin:0 0 4px 0; font-size:11px; color:#999999; text-transform:uppercase; letter-spacing:0.5px;">Declaraciones</p>
+                  <p style="margin:0; font-size:22px; font-weight:700; color:#1a1a1a;">[TOTAL_PD]</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             C. PANELES DE RESUMEN (Por bloque | Por comisión)
+        ════════════════════════════════════════════════════════════ -->
+        <tr>
+          <td style="padding:0 28px 20px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr valign="top">
+
+                <!-- Panel izquierdo: Por bloque -->
+                <td width="48%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 16px;">
+                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+                    Por bloque
+                  </p>
+
+                  <!-- Ejemplo de fila de bloque — repetir por cada bloque -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
+                    <tr>
+                      <td style="font-size:12px; color:#1a1a1a; padding-bottom:3px;" colspan="2">[NOMBRE_BLOQUE] <span style="color:#999999;">([N])</span></td>
+                    </tr>
+                    <tr>
+                      <!-- Barra proporcional: ancho de celda coloreada = (N/TOTAL)*100% -->
+                      <td width="[PORCENTAJE_BLOQUE]%" style="height:6px; background-color:#1a5fa5; font-size:0;">&nbsp;</td>
+                      <td style="height:6px; background-color:#E5E5E5; font-size:0;">&nbsp;</td>
+                    </tr>
+                  </table>
+                  <!-- /fin ejemplo fila de bloque -->
+
+                </td>
+
+                <!-- Spacer -->
+                <td width="4%" style="font-size:0;">&nbsp;</td>
+
+                <!-- Panel derecho: Por comisión -->
+                <td width="48%" style="background-color:#F5F5F5; border:1px solid #E5E5E5; padding:14px 16px;">
+                  <p style="margin:0 0 12px 0; font-size:12px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+                    Por comisión
+                  </p>
+
+                  <!-- Ejemplo de fila de comisión — repetir por cada comisión presente -->
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
+                    <tr>
+                      <td style="font-size:12px; color:#1a1a1a;">[NOMBRE_COMISION]</td>
+                      <td align="right">
+                        <span style="display:inline-block; background-color:#EEEEEE; color:#666666; font-size:11px; padding:1px 7px; border-radius:10px;">[N]</span>
+                      </td>
+                    </tr>
+                  </table>
+                  <!-- /fin ejemplo fila de comisión -->
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             D. DETALLE DE PROYECTOS
+             Orden: PL, PR, PD, PC, CA, AC, CV
+        ════════════════════════════════════════════════════════════ -->
+        <tr>
+          <td style="padding:0 28px 8px 28px;">
+            <p style="margin:0 0 12px 0; font-size:13px; font-weight:700; color:#1a1a1a; text-transform:uppercase; letter-spacing:0.5px;">
+              Detalle de proyectos
+            </p>
+          </td>
+        </tr>
+
+        <!-- ── Encabezado de sección por tipo (ej: Proyectos de Ley) ── -->
+        <tr>
+          <td style="padding:0 28px 0 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#F5F5F5; border-left:3px solid #1a5fa5; padding:8px 12px; margin-bottom:2px;">
+                  <p style="margin:0; font-size:13px; font-weight:700; color:#1a5fa5;">
+                    Proyectos de Ley <span style="font-weight:400; color:#666666;">([TOTAL_PL])</span>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ── Fila de proyecto individual — repetir por cada proyecto ── -->
+        <tr>
+          <td style="padding:0 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:12px 0 11px 0; border-bottom:1px solid #E5E5E5;">
+                  <!-- Línea 1: expediente + título -->
+                  <p style="margin:0 0 4px 0; font-size:13px; color:#1a1a1a; line-height:1.4;">
+                    <a href="[URL]" style="color:#1a5fa5; text-decoration:none; font-weight:700;">[EXPEDIENTE]</a>
+                    &nbsp;—&nbsp;[TITULO]
+                  </p>
+                  <!-- Línea 2: autor · bloque — provincia -->
+                  <p style="margin:0 0 3px 0; font-size:12px; color:#666666; line-height:1.4;">
+                    [AUTOR]<!-- si bloque no vacío: -->
+                    &nbsp;·&nbsp;<span style="color:#999999;">[BLOQUE]</span><!-- si provincia no vacío: -->
+                    &nbsp;—&nbsp;<span style="color:#999999;">[PROVINCIA]</span>
+                  </p>
+                  <!-- Línea 3: comisiones (omitir si vacío) -->
+                  <p style="margin:0; font-size:12px; color:#999999; line-height:1.4;">
+                    [COMISIONES]
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- /fin fila de proyecto -->
+
+        <!-- Espacio entre secciones de tipo -->
+        <tr><td style="height:12px;"></td></tr>
+
+        <!-- ── Repetir bloque "encabezado de sección + filas de proyecto" para PR, PD, PC, CA, AC, CV ── -->
+
+        <!-- ═══════════════════════════════════════════════════════════
+             E. PIE
+        ════════════════════════════════════════════════════════════ -->
+        <tr>
+          <td style="height:1px; background-color:#E5E5E5;"></td>
+        </tr>
+        <tr>
+          <td style="padding:16px 28px; background-color:#F5F5F5;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr valign="middle">
+                <td style="font-size:11px; color:#999999;">
+                  Fuente: scraper automático HSN &nbsp;·&nbsp; [FECHA_GENERACION]
+                </td>
+                <td align="right" style="font-size:11px;">
+                  <a href="https://bonifaciomariano.github.io/Proyectos-ingresados"
+                     style="color:#1a5fa5; text-decoration:none;">
+                    Ver dashboard completo &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <!-- /fin contenedor 600px -->
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -2,6 +2,7 @@ name: Actualizar Dashboard
 
 on:
   schedule:
+    - cron: '0 9 * * 1-5'    # 6:00 AM Argentina — resumen antes del email
     - cron: '0 11 * * 1-5'   # 8:00 AM Argentina (lun-vie)
     - cron: '0 21 * * 1-5'   # 6:00 PM Argentina (lun-vie)
   workflow_dispatch:
@@ -41,6 +42,12 @@ jobs:
           TIMEOUT_MINUTOS: "20"
         continue-on-error: true
 
+      - name: Generar resumen diario
+        run: python generar_resumen_diario.py
+        env:
+          ARCHIVO_HISTORICOS: trazabilidad.tsv
+        continue-on-error: true
+
       # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
       - name: Generar embeddings semánticos
         if: false
@@ -54,7 +61,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html trazabilidad_historico.tsv scraping_historico.json
+          git add index.html trazabilidad_historico.tsv scraping_historico.json resumen_diario.json
           if git diff --staged --quiet; then
             echo "Sin cambios en index.html"
           else
