@@ -1,43 +1,6 @@
 {
-  "proyectos_fecha": "04/06/2026",
-  "generado": "05/06/2026 22:12",
-  "total": 3,
-  "proyectos": [
-    {
-      "expediente": "195/2026",
-      "tipo": "AC",
-      "tipo_label": "Acuerdo",
-      "titulo": "MENSAJE N° 190/26 QUE SOLICITA ACUERDO PARA DESIGNAR VOCAL DE LA CAMARA FEDERAL DE APELACIONES DE SAN JUSTO, PROVINCIA DE BUENOS AIRES, AL DR. ANDRES GUILLERMO FRAGA.",
-      "autor": "",
-      "bloque": "",
-      "provincia": "",
-      "fecha": "04/06/2026",
-      "comisiones": "DE ACUERDOS",
-      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/195.26/PE/AC"
-    },
-    {
-      "expediente": "194/2026",
-      "tipo": "AC",
-      "tipo_label": "Acuerdo",
-      "titulo": "MENSAJE N° 188/26 QUE SOLICITA ACUERDO PARA DESIGNAR JUEZA DEL JUZGADO NACIONAL DE PRIMERA INSTANCIA EN LO CIVIL N° 69 DE LA CAPITAL FEDERAL, A LA DRA. KARINA GABRIELA RAPKINAS.",
-      "autor": "",
-      "bloque": "",
-      "provincia": "",
-      "fecha": "04/06/2026",
-      "comisiones": "DE ACUERDOS",
-      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/194.26/PE/AC"
-    },
-    {
-      "expediente": "196/2026",
-      "tipo": "AC",
-      "tipo_label": "Acuerdo",
-      "titulo": "MENSAJE N° 189/26 QUE SOLICITA ACUERDO PARA PROMOVER AL GRADO INMEDIATO SUPERIOR, A PERSONAL MILITAR SUPERIOR DE LA FUERZA AÉREA ARGENTINA, AL 31 DE DICIEMBRE DE 2025.",
-      "autor": "",
-      "bloque": "",
-      "provincia": "",
-      "fecha": "04/06/2026",
-      "comisiones": "DE ACUERDOS",
-      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/196.26/PE/AC"
-    }
-  ]
+  "proyectos_fecha": "07/06/2026",
+  "generado": "08/06/2026 13:00",
+  "total": 0,
+  "proyectos": []
 }
