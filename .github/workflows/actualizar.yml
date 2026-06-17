@@ -40,6 +40,22 @@ jobs:
           ARCHIVO_HISTORICOS: trazabilidad.tsv
         continue-on-error: true
 
+      - name: Generar HTML resumen diario
+        run: python generar_html_resumen.py
+        env:
+          RESUMEN_JSON: resumen_diario.json
+          RESUMEN_HTML: resumen_diario.html
+        continue-on-error: true
+
+      - name: Enviar email
+        if: github.event.schedule == '0 9 * * 1-5' || github.event_name == 'workflow_dispatch'
+        run: python enviar_email.py
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
+        continue-on-error: true
+
       # SEMÁNTICO: desactivado temporalmente - reactivar cuando se retome
       - name: Generar embeddings semánticos
         if: false
@@ -53,7 +69,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html trazabilidad.tsv resumen_diario.json
+          git add index.html trazabilidad.tsv resumen_diario.json resumen_diario.html
           if git diff --staged --quiet; then
             echo "Sin cambios en index.html"
           else
