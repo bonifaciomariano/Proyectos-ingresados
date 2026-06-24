@@ -1,7 +1,7 @@
 {
   "proyectos_fecha": "23/06/2026",
-  "generado": "24/06/2026 11:40",
-  "total": 1,
+  "generado": "24/06/2026 13:14",
+  "total": 2,
   "proyectos": [
     {
       "expediente": "1088/2026",
@@ -14,6 +14,18 @@
       "fecha": "23/06/2026",
       "comisiones": "DE MINERÍA, ENERGÍA Y COMBUSTIBLES",
       "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1088.26/S/PC"
+    },
+    {
+      "expediente": "1090/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLÁCITO POR LA CONSAGRACIÓN DE LA SELECCIÓN ARGENTINA DE BÁSQUET PARA ATLETAS CON SÍNDROME DE DOWN, EN EL CAMPEONATO MUNDIAL, REALIZADO EN LA CDAD. DE KÖRMEND, HUNGRÍA, EL 19 DE JUNIO DE 2026.",
+      "autor": "FERNÁNDEZ SAGASTI, ANABEL - ABAD, MAXIMILIANO -",
+      "bloque": "JUSTICIALISTA",
+      "provincia": "MENDOZA",
+      "fecha": "23/06/2026",
+      "comisiones": "DE DEPORTE",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1090.26/S/PD"
     }
   ]
 }
