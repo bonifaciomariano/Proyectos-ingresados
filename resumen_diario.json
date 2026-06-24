@@ -1,6 +1,19 @@
 {
-  "proyectos_fecha": "22/06/2026",
-  "generado": "23/06/2026 22:09",
-  "total": 0,
-  "proyectos": []
+  "proyectos_fecha": "23/06/2026",
+  "generado": "24/06/2026 11:40",
+  "total": 1,
+  "proyectos": [
+    {
+      "expediente": "1088/2026",
+      "tipo": "PC",
+      "tipo_label": "Proyecto de Comunicación",
+      "titulo": "PROYECTO DE COMUNICACIÓN QUE SOLICITA INFORME RESPECTO DE LA OBRA DE APROVECHAMIENTO HIDROELÉCTRICO DEL RIO SANTA CRUZ Y OTRAS CUESTIONES CONEXAS.",
+      "autor": "KIRCHNER, ALICIA MARGARITA ANTONIA -",
+      "bloque": "JUSTICIALISTA",
+      "provincia": "SANTA CRUZ",
+      "fecha": "23/06/2026",
+      "comisiones": "DE MINERÍA, ENERGÍA Y COMBUSTIBLES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1088.26/S/PC"
+    }
+  ]
 }
