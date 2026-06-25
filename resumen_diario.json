@@ -1,31 +1,43 @@
 {
-  "proyectos_fecha": "23/06/2026",
-  "generado": "24/06/2026 22:13",
-  "total": 2,
+  "proyectos_fecha": "24/06/2026",
+  "generado": "25/06/2026 11:34",
+  "total": 3,
   "proyectos": [
     {
-      "expediente": "1088/2026",
-      "tipo": "PC",
-      "tipo_label": "Proyecto de Comunicación",
-      "titulo": "PROYECTO DE COMUNICACIÓN QUE SOLICITA INFORME RESPECTO DE LA OBRA DE APROVECHAMIENTO HIDROELÉCTRICO DEL RIO SANTA CRUZ Y OTRAS CUESTIONES CONEXAS.",
-      "autor": "KIRCHNER, ALICIA MARGARITA ANTONIA -",
-      "bloque": "JUSTICIALISTA",
-      "provincia": "SANTA CRUZ",
-      "fecha": "23/06/2026",
-      "comisiones": "DE MINERÍA, ENERGÍA Y COMBUSTIBLES",
-      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1088.26/S/PC"
+      "expediente": "1096/2026",
+      "tipo": "PR",
+      "tipo_label": "Proyecto de Resolución",
+      "titulo": "PROYECTO DE RESOLUCIÓN QUE CITA AL SEÑOR JEFE DE GABINETE DE MINISTROS, MANUEL ADORNI, PARA SER INTERPELADO CONFORME A LO ESTABLECIDO EN EL ART. 101 DE LA C.N., A EFECTOS DE CONSIDERAR UNA MOCIÓN DE CENSURA O REMOCIÓN.",
+      "autor": "GOERLING LARA, ENRIQUE MARTÍN - HUALA, MARÍA VICTORIA -",
+      "bloque": "FRENTE PRO",
+      "provincia": "MISIONES",
+      "fecha": "24/06/2026",
+      "comisiones": "DE ASUNTOS CONSTITUCIONALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1096.26/S/PR"
     },
     {
-      "expediente": "1090/2026",
-      "tipo": "PD",
-      "tipo_label": "Proyecto de Declaración",
-      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLÁCITO POR LA CONSAGRACIÓN DE LA SELECCIÓN ARGENTINA DE BÁSQUET PARA ATLETAS CON SÍNDROME DE DOWN, EN EL CAMPEONATO MUNDIAL, REALIZADO EN LA CDAD. DE KÖRMEND, HUNGRÍA, EL 19 DE JUNIO DE 2026.",
-      "autor": "FERNÁNDEZ SAGASTI, ANABEL - ABAD, MAXIMILIANO -",
-      "bloque": "JUSTICIALISTA",
-      "provincia": "MENDOZA",
-      "fecha": "23/06/2026",
-      "comisiones": "DE DEPORTE",
-      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1090.26/S/PD"
+      "expediente": "1094/2026",
+      "tipo": "PL",
+      "tipo_label": "Proyecto de Ley",
+      "titulo": "PROYECTO DE LEY DE SPONSORIZACIÓN DEPORTIVA.",
+      "autor": "ATAUCHE, EZEQUIEL -",
+      "bloque": "LA LIBERTAD AVANZA",
+      "provincia": "JUJUY",
+      "fecha": "24/06/2026",
+      "comisiones": "DE DEPORTE | DE PRESUPUESTO Y HACIENDA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1094.26/S/PL"
+    },
+    {
+      "expediente": "1091/2026",
+      "tipo": "PL",
+      "tipo_label": "Proyecto de Ley",
+      "titulo": "PROYECTO DE LEY QUE CREA EL REGIMEN NACIONAL DE MECENAZGO DEPORTIVO.",
+      "autor": "ABAD, MAXIMILIANO -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "BUENOS AIRES",
+      "fecha": "24/06/2026",
+      "comisiones": "DE DEPORTE | DE PRESUPUESTO Y HACIENDA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1091.26/S/PL"
     }
   ]
 }
