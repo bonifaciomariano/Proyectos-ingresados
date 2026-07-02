@@ -1,6 +1,31 @@
 {
   "proyectos_fecha": "01/07/2026",
-  "generado": "02/07/2026 12:54",
-  "total": 0,
-  "proyectos": []
+  "generado": "02/07/2026 22:07",
+  "total": 2,
+  "proyectos": [
+    {
+      "expediente": "290/2026",
+      "tipo": "CV",
+      "tipo_label": "Com. Varias",
+      "titulo": "REMITE COPIA DE RESOLUCIÓN POR LA QUE EXPRESA BENEPLÁCITO Y ACOMPAÑAMIENTO AL PROYECTO DE LEY PROVINCIAL QUE PROPONE MODIFICAR A SU SIMILAR 14.761, SOBRE ACTUALIZACIÓN DEL FONDO PARA EL FINANCIAMIENTO OPERATIVO DE LAS FEDERACIONES Y ASOCI",
+      "autor": "",
+      "bloque": "",
+      "provincia": "",
+      "fecha": "01/07/2026",
+      "comisiones": "",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/290.26/OV/CV"
+    },
+    {
+      "expediente": "289/2026",
+      "tipo": "CV",
+      "tipo_label": "Com. Varias",
+      "titulo": "REMITE COPIA DE RESOLUCIÓN N° 209/2026 POR LA QUE EXPRESA EL ACOMPAÑAMIENTO AL TRATAMIENTO Y POSTERIOR APROBACION DEL PROYECTO DE LEY S. 596/26, DENOMINADO \"ARGENTINA CONTRA EL BULLYING: POR UNA E",
+      "autor": "",
+      "bloque": "",
+      "provincia": "",
+      "fecha": "01/07/2026",
+      "comisiones": "",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/289.26/OV/CV"
+    }
+  ]
 }
