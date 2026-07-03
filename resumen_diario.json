@@ -1,6 +1,139 @@
 {
   "proyectos_fecha": "02/07/2026",
-  "generado": "03/07/2026 12:55",
-  "total": 0,
-  "proyectos": []
+  "generado": "03/07/2026 22:09",
+  "total": 11,
+  "proyectos": [
+    {
+      "expediente": "1174/2026",
+      "tipo": "PL",
+      "tipo_label": "Proyecto de Ley",
+      "titulo": "PROYECTO DE LEY QUE CREA LA OFICINA ANTICORRUPCION.",
+      "autor": "VISCHI, EDUARDO ALEJANDRO - SCHNEIDER, SILVANA LORENA - KRONEBERGER, DANIEL RICARDO - VALENZUELA, MERCEDES GABRIELA -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "CORRIENTES",
+      "fecha": "02/07/2026",
+      "comisiones": "DE ASUNTOS CONSTITUCIONALES | DE JUSTICIA Y ASUNTOS PENALES | DE PRESUPUESTO Y HACIENDA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1174.26/S/PL"
+    },
+    {
+      "expediente": "1173/2026",
+      "tipo": "PL",
+      "tipo_label": "Proyecto de Ley",
+      "titulo": "PROYECTO DE LEY QUE MODIFICA EL ART. 2 DE SU SIMILAR 23.592 - LEY ANTIDISCRIMINATORIA- SOBRE ACTOS DISCRIMINATORIOS, EN MATERIA DE REGLAS DE INTERPRETACION Y APLICACIÓN DE NUEVAS CIRCUNSTANCIAS AGRAVANTES.",
+      "autor": "AVILA, BEATRIZ LUISA -",
+      "bloque": "INDEPENDENCIA",
+      "provincia": "TUCUMÁN",
+      "fecha": "02/07/2026",
+      "comisiones": "DE POBLACIÓN Y DESARROLLO  HUMANO | DE JUSTICIA Y ASUNTOS PENALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1173.26/S/PL"
+    },
+    {
+      "expediente": "1172/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACION QUE RECHAZA LOS DESPIDOS MASIVOS EN LA COMISION NACIONAL DE ENERGIA ATOMICA (CNEA) Y REPUDIA EL INGRESO DE EFECTIVOS DE GENDARMERIA NACIONAL.",
+      "autor": "DE PEDRO, EDUARDO ENRIQUE - KIRCHNER, ALICIA MARGARITA ANTONIA - CAPITANICH, JORGE MILTON - MANZUR, JUAN LUIS - MARKS, ANA INÉS - FERNÁNDEZ SAGASTI, ANABEL - SORIA, MARTIN IGNACIO - MAYANS, JOSÉ MIGUEL ÁNGEL - REJAL, JESÚS FERNANDO - RECALDE, MARIANO - GIMÉNEZ NAVARRO, MARÍA CELESTE - LÓPEZ, CÁNDIDA CRISTINA -",
+      "bloque": "JUSTICIALISTA",
+      "provincia": "BUENOS AIRES",
+      "fecha": "02/07/2026",
+      "comisiones": "DE TRABAJO Y PREVISIÓN SOCIAL",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1172.26/S/PD"
+    },
+    {
+      "expediente": "1171/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE DECLARA DE INTERÉS LA OBRA DE JOSÉ RICARDO COHEN, CONOCIDO ARTÍSTICAMENTE COMO ROCAMBOLE.",
+      "autor": "GIMÉNEZ NAVARRO, MARÍA CELESTE - DE PEDRO, EDUARDO ENRIQUE - RECALDE, MARIANO - FERNÁNDEZ SAGASTI, ANABEL - MARKS, ANA INÉS -",
+      "bloque": "JUSTICIALISTA",
+      "provincia": "SAN JUAN",
+      "fecha": "02/07/2026",
+      "comisiones": "DE EDUCACIÓN Y CULTURA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1171.26/S/PD"
+    },
+    {
+      "expediente": "1170/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLACITO POR LA CONMEMORACION DEL 105 ANIVERSARIO DE CORZUELA, LOC. DE LA PROV. DEL CHACO, EL 11 DE JULIO.",
+      "autor": "SCHNEIDER, SILVANA LORENA -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "CHACO",
+      "fecha": "02/07/2026",
+      "comisiones": "DE ASUNTOS ADMINISTRATIVOS Y MUNICIPALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1170.26/S/PD"
+    },
+    {
+      "expediente": "1169/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLACITO POR LA CONMEMORACION DEL 138 ANIVERSARIO DE LAGUNA BLANCA, LOC. DE LA PROV. DEL CHACO, EL 14 DE JULIO.",
+      "autor": "SCHNEIDER, SILVANA LORENA -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "CHACO",
+      "fecha": "02/07/2026",
+      "comisiones": "DE ASUNTOS ADMINISTRATIVOS Y MUNICIPALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1169.26/S/PD"
+    },
+    {
+      "expediente": "1168/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLACITO POR LA CONMEMORACION DEL 105 ANIVERSARIO DE LAS BREÑAS, LOC. DE LA PROV. DEL CHACO, EL 11 DE JULIO.",
+      "autor": "SCHNEIDER, SILVANA LORENA -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "CHACO",
+      "fecha": "02/07/2026",
+      "comisiones": "DE ASUNTOS ADMINISTRATIVOS Y MUNICIPALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1168.26/S/PD"
+    },
+    {
+      "expediente": "1167/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE EXPRESA BENEPLACITO POR LA CONMEMORACION DEL 105 ANIVERSARIO DE AVIA TERAI, LOC. DE LA PROV. DEL CHACO, EL 11 DE JULIO.",
+      "autor": "SCHNEIDER, SILVANA LORENA -",
+      "bloque": "UCR - UNIÓN CÍVICA RADICAL",
+      "provincia": "CHACO",
+      "fecha": "02/07/2026",
+      "comisiones": "DE ASUNTOS ADMINISTRATIVOS Y MUNICIPALES",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1167.26/S/PD"
+    },
+    {
+      "expediente": "1166/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE DECLARA DE INTERÉS LAS ACTIVIDADES CONMEMORATIVAS EN UN NUEVO ANIVERSARIO DEL EXODO JUJEÑO.",
+      "autor": "MOISES, MARÍA CAROLINA - MENDOZA, SANDRA MARIELA - ANDRADA, GUILLERMO EDUARDO -",
+      "bloque": "CONVICCIÓN FEDERAL",
+      "provincia": "JUJUY",
+      "fecha": "02/07/2026",
+      "comisiones": "DE EDUCACIÓN Y CULTURA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1166.26/S/PD"
+    },
+    {
+      "expediente": "1165/2026",
+      "tipo": "PD",
+      "tipo_label": "Proyecto de Declaración",
+      "titulo": "PROYECTO DE DECLARACIÓN QUE DECLARA DE INTERÉS LA CONMEMORACION DEL 190° ANIVERSARIO DEL NATALICIO DE DOÑA JOSEFA DOMINGA \"PEPA\" BALCARCE Y SAN MARTIN, EL 14 DE JULIO DE 2026.",
+      "autor": "MOISES, MARÍA CAROLINA - MENDOZA, SANDRA MARIELA - ANDRADA, GUILLERMO EDUARDO -",
+      "bloque": "CONVICCIÓN FEDERAL",
+      "provincia": "JUJUY",
+      "fecha": "02/07/2026",
+      "comisiones": "DE EDUCACIÓN Y CULTURA",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/1165.26/S/PD"
+    },
+    {
+      "expediente": "291/2026",
+      "tipo": "CV",
+      "tipo_label": "Com. Varias",
+      "titulo": "REMITE COPIA DE RESOLUCIÓN N° 1356 POR LA QUE SOLICITA LA REVISIÓN DE LAS ACTUACIONES JUDICIALES VINCULADAS A LA EXPRESIDENTA CRISTINA FERNANDEZ DE KIRCHNER, EN RESGUARDO DE LAS GARANTIAS CONSTITUCIONALES DEL DEBIDO PROCESO Y LA DEFENSA E",
+      "autor": "",
+      "bloque": "",
+      "provincia": "",
+      "fecha": "02/07/2026",
+      "comisiones": "",
+      "url": "https://www.senado.gob.ar/parlamentario/comisiones/verExp/291.26/OV/CV"
+    }
+  ]
 }
